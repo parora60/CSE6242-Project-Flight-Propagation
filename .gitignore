@@ -208,3 +208,6 @@ __marimo__/
 
 # parquet file/dataset
 *.parquet 
+
+#large files
+data/propagation_events.csv

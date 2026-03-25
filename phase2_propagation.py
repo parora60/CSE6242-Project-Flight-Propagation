@@ -282,6 +282,8 @@ AIRPORT_COORDS = {
     "CVG": (39.0488, -84.6678, "Cincinnati", "OH"),
     "BUF": (42.9405, -78.7322, "Buffalo", "NY"),
     "OMA": (41.3032, -95.8941, "Omaha", "NE"),
+    "EAR": (40.7270, -99.0068, "Kearney", "NE"),
+    "XWA": (48.2594, -103.7514, "Williston", "ND"),
     "ABQ": (35.0402, -106.6090, "Albuquerque", "NM"),
     "MEM": (35.0424, -89.9767, "Memphis", "TN"),
     "BDL": (41.9389, -72.6832, "Hartford", "CT"),
@@ -306,6 +308,7 @@ AIRPORT_COORDS = {
     "FAT": (36.7762, -119.7182, "Fresno", "CA"),
     "RNO": (39.4991, -119.7681, "Reno", "NV"),
     "COS": (38.8058, -104.7008, "Colorado Springs", "CO"),
+    "ASE": (39.2232, -106.8688, "Aspen", "CO"),
     "GRR": (42.8808, -85.5228, "Grand Rapids", "MI"),
     "DSM": (41.5340, -93.6631, "Des Moines", "IA"),
     "BHM": (33.5629, -86.7535, "Birmingham", "AL"),
@@ -327,6 +330,7 @@ AIRPORT_COORDS = {
     "SRQ": (27.3954, -82.5544, "Sarasota", "FL"),
     "GNV": (29.6900, -82.2717, "Gainesville", "FL"),
     "DAB": (29.1799, -81.0581, "Daytona Beach", "FL"),
+    "SFB": (28.7776, -81.2375, "Orlando Sanford", "FL"),
     "MLB": (28.1028, -80.6453, "Melbourne", "FL"),
     "EYW": (24.5561, -81.7596, "Key West", "FL"),
     "MYR": (33.6797, -78.9283, "Myrtle Beach", "SC"),
@@ -400,23 +404,49 @@ AIRPORT_COORDS = {
     "OTZ": (66.8847, -162.5990, "Kotzebue", "AK"),
 }
 
+def fetch_openflights_coords() -> dict:
+    """Fetch lat/lon for all IATA codes from OpenFlights (fallback for missing coords)."""
+    import urllib.request, csv, io
+    url = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat"
+    coords = {}
+    try:
+        with urllib.request.urlopen(url, timeout=10) as r:
+            for row in csv.reader(io.StringIO(r.read().decode('utf-8', errors='ignore'))):
+                if len(row) < 8:
+                    continue
+                iata = row[4].strip().strip('"')
+                if len(iata) != 3:
+                    continue
+                try:
+                    coords[iata] = (float(row[6]), float(row[7]),
+                                    row[1].strip('"'), row[3].strip('"'))
+                except ValueError:
+                    continue
+        print(f"      OpenFlights: loaded coords for {len(coords)} airports")
+    except Exception as e:
+        print(f"      ⚠ Could not fetch OpenFlights data: {e} — falling back to hardcoded table only")
+    return coords
 
 def load_airport_meta(iata_codes: list) -> pd.DataFrame:
     """Build a lookup DataFrame for all IATA codes present in the network."""
     print("[4/7] Loading airport metadata …")
+    of_coords = fetch_openflights_coords()
     rows = []
     missing = []
     for code in iata_codes:
         if code in AIRPORT_COORDS:
             lat, lon, city, state = AIRPORT_COORDS[code]
-            rows.append({"iata": code, "city": city, "state": state,
-                         "lat": lat, "lon": lon})
+        elif code in of_coords:
+            lat, lon, city, state = of_coords[code]
         else:
-            rows.append({"iata": code, "city": code, "state": "??",
-                         "lat": None, "lon": None})
+            lat, lon, city, state = None, None, code, "??"
             missing.append(code)
+        rows.append({"iata": code, "city": city, "state": state,
+                     "lat": lat, "lon": lon})
     if missing:
-        print(f"      ⚠ No coords for {len(missing)} airports: {missing[:10]} …")
+        print(f"      ⚠ Still no coords for {len(missing)} airports: {missing[:10]} …")
+    else:
+        print(f"      ✓ Full coordinate coverage for all {len(rows)} airports")
     meta = pd.DataFrame(rows).set_index("iata")
     print(f"      Metadata built for {len(meta)} airports")
     return meta

@@ -1,5 +1,5 @@
 """
-Phase 2 – Validation & Diagnostics
+Phase 2 - Validation & Diagnostics
 ====================================
 Run AFTER phase2_propagation.py to verify outputs and generate
 summary charts for the mid-point report.
@@ -100,15 +100,19 @@ def check_network_structure(data_dir: str):
     print(f"  In-events range    : {min(in_events)} – {max(in_events):,}  "
           f"(mean {np.mean(in_events):.0f})")
 
-    # Top 10 by risk score
-    top = sorted(nodes, key=lambda n: n["prop_risk_score"], reverse=True)[:10]
+    # Top 10 by risk score - minimum 1000 out-events to be included in this ranking
+    top = sorted(
+        [n for n in nodes if n["out_events"] >= 1000],
+        key=lambda n: n["prop_risk_score"],
+        reverse=True
+    )[:10]
     print("\n  Top 10 airports by Propagation Risk Score:")
     print(f"  {'IATA':<6} {'City':<20} {'RiskScore':>10} {'OutEvents':>10} "
           f"{'BetweenC':>10} {'PageRank':>10}")
     print("  " + "-" * 70)
     for n in top:
         print(f"  {n['id']:<6} {n['city']:<20} {n['prop_risk_score']:>10.1f} "
-              f"{n['out_events']:>10,} {n['betweenness']:>10.4f} {n['pagerank']:>10.4f}")
+              f"{n['out_events']:>10,} {n['betweenness']:>10.4f} {n['pagerank']:>10.6f}")
 
 
 # ─────────────────────────────────────────────
@@ -120,7 +124,7 @@ def check_events(data_dir: str):
     print("-" * 70)
     path = f"{data_dir}/propagation_events.csv"
     if not Path(path).exists():
-        print("  ⚠  File missing – skipping")
+        print("  ⚠  File missing - skipping")
         return
 
     ev = pd.read_csv(path, nrows=500_000)   # sample for speed
@@ -161,7 +165,7 @@ def check_cascades(data_dir: str):
     print("-" * 70)
     path = f"{data_dir}/cascade_results.json"
     if not Path(path).exists():
-        print("  ⚠  File missing – skipping")
+        print("  ⚠  File missing - skipping")
         return
 
     cascades = load_json(path)

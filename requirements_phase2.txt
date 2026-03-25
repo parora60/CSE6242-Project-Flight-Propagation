@@ -8,3 +8,4 @@ pyarrow>=12.0        # for read_parquet
 tqdm>=4.65
 matplotlib>=3.7      # validation charts only
 fastparquet
+scipy>1.10           # for PageRank

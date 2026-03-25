@@ -27,10 +27,11 @@ warnings.filterwarnings("ignore")
 # ─────────────────────────────────────────────
 # 0. CONFIG
 # ─────────────────────────────────────────────
-PROP_THRESHOLD_MIN = 1          # min arrival delay on flight N to count as a propagation seed
-LATE_AC_THRESHOLD_MIN = 1       # min LateAircraftDelay on flight N+1 to confirm propagation
+PROP_THRESHOLD_MIN = 15         # min arrival delay on flight N to count as a propagation seed (15 is the BTS standard for geniune delay)
+LATE_AC_THRESHOLD_MIN = 15      # min LateAircraftDelay on flight N+1 to confirm propagation (15 is the BTS standard for genuine delay)
 TURNAROUND_BUFFER_MIN = 30      # scheduled turnaround below this → treat as too tight (flag only)
 TOP_SEED_AIRPORTS = 20          # number of top airports used for cascade simulation
+CASCADE_DECAY = 0.5             # each hop retains 50% of the incoming delay
 CASCADE_HOPS = 6                # max cascade depth for simulation
 CASCADE_THRESHOLD_MIN = 15      # initial delay threshold fed into cascade sim (minutes)
 
@@ -109,7 +110,7 @@ def reconstruct_rotations(df: pd.DataFrame) -> pd.DataFrame:
     df_sorted = df.sort_values(["TAIL_NUM", "_sort_ts"])
 
     # Shift by 1 within each tail to align consecutive legs
-    g = df_sorted.groupby("TAIL_NUM", sort=False)
+    # g = df_sorted.groupby("TAIL_NUM", sort=False)
 
     keep_cols = [
         "TAIL_NUM", "FL_DATE", "MONTH", "_sort_ts",
@@ -122,21 +123,21 @@ def reconstruct_rotations(df: pd.DataFrame) -> pd.DataFrame:
     # Only keep cols that exist
     keep_cols = [c for c in keep_cols if c in df_sorted.columns]
 
-    df_n  = df_sorted[keep_cols].copy()
-    df_n1 = df_sorted[keep_cols].copy().add_suffix("_NEXT")
+    # df_n  = df_sorted[keep_cols].copy()
+    # df_n1 = df_sorted[keep_cols].copy().add_suffix("_NEXT")
 
-    # Concat side-by-side via index shift within group
-    # We'll use a vectorised shift approach
-    idx   = df_sorted.index.to_numpy()
-    tail  = df_sorted["TAIL_NUM"].to_numpy()
+    # # Concat side-by-side via index shift within group
+    # # We'll use a vectorised shift approach
+    # idx   = df_sorted.index.to_numpy()
+    # tail  = df_sorted["TAIL_NUM"].to_numpy()
 
-    # Mark rows where NEXT row belongs to the same tail
-    same_tail = np.empty(len(df_sorted), dtype=bool)
-    same_tail[:-1] = tail[:-1] == tail[1:]
-    same_tail[-1]  = False
+    # # Mark rows where NEXT row belongs to the same tail
+    # same_tail = np.empty(len(df_sorted), dtype=bool)
+    # same_tail[:-1] = tail[:-1] == tail[1:]
+    # same_tail[-1]  = False
 
-    df_transitions = df_n[same_tail].copy().reset_index(drop=True)
-    df_next_vals   = df_n1[np.roll(same_tail, -1) | same_tail].copy()  # shift trick
+    # df_transitions = df_n[same_tail].copy().reset_index(drop=True)
+    # df_next_vals   = df_n1[np.roll(same_tail, -1) | same_tail].copy()  # shift trick
 
     # Simpler: just iloc-shift within groups --------------------------------
     pairs_list = []
@@ -499,11 +500,19 @@ def build_network(events: pd.DataFrame, meta: pd.DataFrame,
     except Exception:
         bc = {n: 0 for n in G.nodes()}
 
-    # PageRank as additional systemic-importance metric
+    # PageRank as additional systemic-importance metric with uniform fallback if weights are all zero or computation fails
     try:
-        pr = nx.pagerank(G, weight="weight", alpha=0.85)
-    except Exception:
-        pr = {n: 0 for n in G.nodes()}
+        max_weight = max(d["weight"] for _, _, d in G.edges(data=True))
+        if max_weight > 0:
+            for u, v, d in G.edges(data=True):
+                d["weight_norm"] = d["weight"] / max_weight
+            pr = nx.pagerank(G, weight="weight_norm", alpha=0.85, max_iter=200)
+        else:
+            pr = nx.pagerank(G, alpha=0.85, max_iter=200)
+    except Exception as e:
+        print(f"      ⚠ PageRank failed: {e} — using uniform fallback")
+        n_nodes = len(G.nodes())
+        pr = {n: 1.0 / n_nodes for n in G.nodes()} if n_nodes > 0 else {}
 
     # ── Assemble nodes JSON ────────────────────────────────────────────────
     all_airports = sorted(set(edge_agg["ORIGIN"]) | set(edge_agg["DEST"]))
@@ -559,23 +568,32 @@ def simulate_cascades(events: pd.DataFrame, top_airports: list,
                       max_hops: int = CASCADE_HOPS) -> dict:
     """
     BFS-style cascade simulation.
-    For each seed airport, propagate an initial delay through the network
-    using observed edge weights (avg_delay transfer factor).
+    For each seed airport, propagate an initial delay through the network using observed edge weights (avg_delay transfer factor).
+    Has minimum edge threshold to prevent noise-driven cascades, and a maximum neighbor cap to prevent superfanout from hubs.
+    Has a decay factor to prevent unrealistically large transfers from very high initial delays, and caps at observed avg_delay on that edge.
+    Stops when no new airports are affected or max_hops is reached.
 
     Returns a dict: { "IATA": [ {hop, airport, delay_min, new_airports}, … ] }
     """
     print(f"[6/7] Running cascade simulations (top {len(top_airports)} seeds) …")
 
+    MIN_EDGE_EVENTS = 50    # only routes with 50+ propagation events are cascade-eligible
+    MAX_NEIGHBORS = 20      # each airport fans out to at most 20 others in cascade
+
     # Build transition matrix: edge → avg prop_delay_min
     edge_map = (
         events.groupby(["ORIGIN", "DEST"])["prop_delay_min"]
-        .mean()
-        .to_dict()
+        .agg(["mean", "count"])
+        .reset_index()
     )
+    edge_map = edge_map[edge_map["count"] >= MIN_EDGE_EVENTS]  # filter weak edges
+
     # Neighbor list: airport → {dest: avg_delay}
     neighbors: dict = {}
-    for (src, dst), avg in edge_map.items():
-        neighbors.setdefault(src, {})[dst] = avg
+    for origin, grp in edge_map.groupby("ORIGIN"):
+        # Keep only the top MAX_NEIGHBORS destinations by event count
+        top = grp.nlargest(MAX_NEIGHBORS, "count")
+        neighbors[origin] = dict(zip(top["DEST"], top["mean"]))
 
     all_cascades = {}
 
@@ -590,8 +608,8 @@ def simulate_cascades(events: pd.DataFrame, top_airports: list,
             newly_affected = []
             for airport, delay in current_wave.items():
                 for dest, avg_prop in neighbors.get(airport, {}).items():
-                    # Transfer fraction: propagated = min(delay, avg_prop on that edge)
-                    transferred = min(delay, avg_prop)
+                    # Transfer fraction: propagated = min(delay * CASCADE_DECAY, avg_prop on that edge) - prevents casing unrealistically large transfers from very high initial delays; also caps at observed avg_prop
+                    transferred = min(delay * CASCADE_DECAY, avg_prop)
                     if transferred >= 1.0:   # only propagate if > 1 min
                         if dest not in visited:
                             visited.add(dest)
@@ -681,10 +699,10 @@ def main(parquet_path: str, output_dir: str = "data"):
         g_m = enrich_with_flight_counts(g_m, df[df["MONTH"] == m])
         export_json(g_m, f"{monthly_dir}/network_month_{int(m):02d}.json")
 
-    # 6. Cascade simulation – seed from top airports by prop_risk_score
+    # 6. Cascade simulation – seed from top airports by out_events
     top_nodes = sorted(
         graph["nodes"],
-        key=lambda n: n["prop_risk_score"],
+        key=lambda n: n["out_events"],
         reverse=True,
     )[:TOP_SEED_AIRPORTS]
     top_airports = [n["id"] for n in top_nodes]
@@ -701,10 +719,10 @@ def main(parquet_path: str, output_dir: str = "data"):
     print(f"  Monthly graphs           : {len(events['MONTH'].unique())}")
     print(f"  Cascade seeds simulated  : {len(top_airports)}")
     print()
-    print("Top 10 airports by Propagation Risk Score:")
+    print("Top 10 airports by Total Outbound Propagation Events (cascade seeds):")
     for n in top_nodes[:10]:
-        print(f"  {n['id']}  score={n['prop_risk_score']:.1f} min  "
-              f"out_events={n['out_events']:,}  betweenness={n['betweenness']:.4f}")
+        print(f"  {n['id']}  out_events={n['out_events']:,}  "
+              f"risk_score={n['prop_risk_score']:.1f} min  betweenness={n['betweenness']:.4f}")
     print()
     print("Output files:")
     print(f"  {output_dir}/network_graph.json      → full-year D3 network")

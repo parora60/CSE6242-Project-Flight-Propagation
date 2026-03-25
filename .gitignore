@@ -143,6 +143,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+flight-venv
 
 # Spyder project settings
 .spyderproject
@@ -212,3 +213,4 @@ __marimo__/
 #large files
 data/propagation_events.csv
 
+.DS_Store

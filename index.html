@@ -1,0 +1,2109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flight Delay Propagation Network</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+      :root {
+        /* Layered Slate Palette */
+        --bg: #0f172a; /* Deep Navy-Slate */
+        --surface: #1e293b; /* Lighter Slate for panels */
+        --surface2: #334155; /* Hover/Active states */
+        --border: #475569; /* Muted slate borders */
+        --text: #f8fafc; /* Crisp off-white */
+        --text-dim: #94a3b8; /* Muted blue-gray */
+        --text-dimmer: #64748b; /* Dark labels */
+
+        /* Vibrant Accents */
+        --accent: #38bdf8; /* Bright Cyan-Blue */
+        --accent-glow: rgba(56, 189, 248, 0.4);
+
+        /* Risk Colors (Maintained but softened) */
+        --high-risk: #f43f5e;
+        --med-risk: #fbbf24;
+        --low-risk: #10b981;
+        --cascade-active: #f97316;
+
+        --edge-high: #ff6b35; /* Vibrant Orange-Red */
+        --edge-low: #3b82f6; /* Strong Blue */
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── TOP BAR ── */
+      #topbar {
+        background: linear-gradient(to right, #1e293b, #0f172a);
+        border-bottom: 1px solid var(--border);
+        padding: 0 20px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        flex-shrink: 0;
+        z-index: 100;
+      }
+      #topbar .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+      }
+      #topbar .logo svg {
+        width: 20px;
+        height: 20px;
+      }
+      #topbar .stats {
+        display: flex;
+        gap: 24px;
+        margin-left: auto;
+      }
+      .stat-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 12px;
+        font-size: 11px;
+      }
+      .stat-pill .label {
+        color: var(--text-dim);
+      }
+      .stat-pill .value {
+        font-weight: 600;
+        color: var(--accent);
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+      }
+
+      /* ── LAYOUT ── */
+      #main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* ── LEFT PANEL ── */
+      #sidebar {
+        width: 272px;
+        min-width: 272px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 10;
+      }
+      .panel-section {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .panel-label {
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-dimmer);
+        margin-bottom: 10px;
+      }
+
+      /* View mode tabs */
+      #mode-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 4px;
+        background: var(--bg);
+        border-radius: 8px;
+        padding: 3px;
+      }
+      .mode-tab {
+        padding: 7px 4px;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 500;
+        border-radius: 5px;
+        cursor: pointer;
+        color: var(--text-dim);
+        transition: all 0.2s;
+        letter-spacing: 0.02em;
+      }
+      .mode-tab.active {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 0 12px rgba(79, 142, 247, 0.35);
+      }
+      .mode-tab:hover:not(.active) {
+        color: var(--text);
+        background: var(--surface2);
+      }
+
+      /* Controls */
+      .ctrl-label {
+        font-size: 10px;
+        color: var(--text-dim);
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+      select {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 7px 10px;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 11.5px;
+        outline: none;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%237a8ab0'%3E%3Cpath d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        margin-bottom: 10px;
+      }
+      select:focus {
+        border-color: var(--accent);
+      }
+
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--border);
+        outline: none;
+        margin: 6px 0;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        box-shadow: 0 0 6px rgba(79, 142, 247, 0.5);
+      }
+
+      /* Play button */
+      #play-btn {
+        width: 100%;
+        padding: 10px;
+        background: var(--accent);
+        border: none;
+        border-radius: 8px;
+        color: #0f172a; /* Dark text on bright button for readability */
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        transition: all 0.2s;
+        box-shadow: 0 4px 14px 0 rgba(56, 189, 248, 0.3);
+        margin-top: 12px;
+      }
+      #play-btn:hover {
+        box-shadow: 0 0 24px rgba(79, 142, 247, 0.5);
+        transform: translateY(-1px);
+      }
+      #play-btn:active {
+        transform: translateY(0);
+      }
+      #play-btn.playing {
+        background: linear-gradient(135deg, var(--cascade-active), #e53e6e);
+      }
+
+      #cascade-status {
+        font-size: 10px;
+        color: var(--text-dim);
+        margin-top: 6px;
+        font-family: "DM Mono", monospace;
+        min-height: 14px;
+      }
+
+      /* Affected airports list */
+      #affected-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+      }
+      #affected-list::-webkit-scrollbar {
+        width: 3px;
+      }
+      #affected-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #affected-list::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+
+      .affected-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-bottom: 1px solid rgba(99, 120, 180, 0.08);
+        font-size: 11px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .affected-row:hover {
+        background: var(--surface2);
+      }
+      .affected-code {
+        font-family: "DM Mono", monospace;
+        font-weight: 500;
+        font-size: 12px;
+        color: var(--accent);
+        width: 32px;
+        flex-shrink: 0;
+      }
+      .affected-name {
+        color: var(--text-dim);
+        flex: 1;
+        font-size: 10.5px;
+      }
+      .affected-delay {
+        font-family: "DM Mono", monospace;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .delay-bar-wrap {
+        width: 50px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 2px;
+      }
+      .delay-bar {
+        height: 100%;
+        border-radius: 2px;
+        background: var(--cascade-active);
+      }
+
+      /* TOP 10 section for risk/volume modes */
+      #top10-section {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #top10-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+      }
+      #top10-list::-webkit-scrollbar {
+        width: 3px;
+      }
+      #top10-list::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+
+      .top10-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-bottom: 1px solid rgba(99, 120, 180, 0.08);
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .top10-row:hover {
+        background: var(--surface2);
+      }
+      .rank-num {
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        color: var(--text-dimmer);
+        width: 16px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .top10-code {
+        font-family: "DM Mono", monospace;
+        font-weight: 600;
+        font-size: 12px;
+        width: 32px;
+        flex-shrink: 0;
+      }
+      .top10-city {
+        color: var(--text-dim);
+        font-size: 10.5px;
+        flex: 1;
+      }
+      .top10-bar-wrap {
+        width: 44px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 2px;
+      }
+      .top10-bar {
+        height: 100%;
+        border-radius: 2px;
+      }
+      .top10-val {
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        color: var(--text-dim);
+        width: 38px;
+        text-align: right;
+      }
+
+      /* Legend */
+      #legend-section {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+      }
+      .legend-items {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 10.5px;
+        color: var(--text-dim);
+      }
+      .legend-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .legend-line {
+        width: 18px;
+        height: 2px;
+        flex-shrink: 0;
+        border-radius: 1px;
+      }
+
+      /* ── MAP AREA ── */
+      #map-area {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(
+          circle at 50% 50%,
+          #1e293b 0%,
+          #0f172a 100%
+        );
+      }
+
+      #map-svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Zoom controls */
+      #zoom-controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        z-index: 20;
+      }
+      .zoom-btn {
+        width: 32px;
+        height: 32px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        line-height: 1;
+      }
+      .zoom-btn:hover {
+        background: var(--surface2);
+        border-color: var(--accent);
+      }
+
+      /* Help overlay */
+      #help-btn {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.15s;
+        z-index: 20;
+      }
+      #help-btn:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+
+      /* Tooltip */
+      #tooltip {
+        position: absolute;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s;
+        z-index: 200;
+        max-width: 220px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      #tooltip.visible {
+        opacity: 1;
+      }
+      .tt-header {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .tt-code {
+        font-family: "DM Mono", monospace;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .tt-city {
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .tt-badge {
+        font-size: 9px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: auto;
+      }
+      .tt-badge.high {
+        background: rgba(244, 63, 94, 0.2);
+        color: var(--high-risk);
+      }
+      .tt-badge.medium {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--med-risk);
+      }
+      .tt-badge.low {
+        background: rgba(34, 197, 94, 0.2);
+        color: var(--low-risk);
+      }
+      .tt-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .tt-metric {
+        background: var(--bg);
+        border-radius: 5px;
+        padding: 6px 7px;
+      }
+      .tt-metric .ml {
+        font-size: 8.5px;
+        color: var(--text-dimmer);
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 2px;
+      }
+      .tt-metric .mv {
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      /* Detail panel (click) */
+      #detail-panel {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 260px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0;
+        z-index: 100;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+        display: none;
+        overflow: hidden;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+      }
+      #detail-panel.visible {
+        display: block;
+      }
+      #detail-close {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        cursor: pointer;
+        color: var(--text-dimmer);
+        font-size: 16px;
+        line-height: 1;
+      }
+      #detail-close:hover {
+        color: var(--text);
+      }
+      .dp-head {
+        background: var(--surface2);
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .dp-code {
+        font-family: "DM Mono", monospace;
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .dp-city {
+        font-size: 11px;
+        color: var(--text-dim);
+        margin-top: 1px;
+      }
+      .dp-body {
+        padding: 12px 14px;
+      }
+      .dp-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .dp-metric {
+        background: var(--bg);
+        border-radius: 6px;
+        padding: 7px 8px;
+      }
+      .dp-metric .dml {
+        font-size: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-dimmer);
+        margin-bottom: 2px;
+      }
+      .dp-metric .dmv {
+        font-family: "DM Mono", monospace;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .dp-section-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-dimmer);
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+      .cause-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 5px;
+      }
+      .cause-label {
+        font-size: 10px;
+        color: var(--text-dim);
+        width: 80px;
+        flex-shrink: 0;
+      }
+      .cause-bar-wrap {
+        flex: 1;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 2px;
+      }
+      .cause-bar {
+        height: 100%;
+        border-radius: 2px;
+      }
+      .cause-pct {
+        font-family: "DM Mono", monospace;
+        font-size: 9px;
+        color: var(--text-dimmer);
+        width: 26px;
+        text-align: right;
+      }
+
+      /* Help modal */
+      #help-modal {
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 13, 20, 0.85);
+        backdrop-filter: blur(4px);
+        z-index: 500;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      #help-modal.visible {
+        display: flex;
+      }
+      .help-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 28px 32px;
+        max-width: 480px;
+        width: 90%;
+      }
+      .help-box h2 {
+        font-size: 18px;
+        margin-bottom: 4px;
+      }
+      .help-box .sub {
+        color: var(--text-dim);
+        font-size: 12px;
+        margin-bottom: 20px;
+      }
+      .help-section {
+        margin-bottom: 16px;
+      }
+      .help-section h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--accent);
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .help-section p {
+        font-size: 12px;
+        color: var(--text-dim);
+        line-height: 1.6;
+      }
+      .help-section ul {
+        font-size: 12px;
+        color: var(--text-dim);
+        line-height: 1.8;
+        padding-left: 16px;
+      }
+      .help-close-btn {
+        margin-top: 20px;
+        width: 100%;
+        padding: 9px;
+        background: var(--accent);
+        border: none;
+        border-radius: 7px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* SVG styles */
+      .us-state {
+        fill: #111827;
+        stroke: #1e293b;
+        stroke-width: 0.5;
+      }
+      .us-outline {
+        fill: none;
+        stroke: #334155;
+        stroke-width: 1.2;
+      }
+      .airport-node {
+        cursor: pointer;
+        transition: filter 0.2s;
+      }
+      .airport-node:hover {
+        filter: brightness(1.4);
+      }
+      .airport-label {
+        font-family: "DM Mono", monospace;
+        font-size: 7.5px;
+        fill: rgba(226, 232, 247, 0.7);
+        pointer-events: none;
+        text-anchor: middle;
+        dominant-baseline: central;
+      }
+      .edge-path {
+        fill: none;
+        pointer-events: none;
+        stroke-linecap: round;
+      }
+      .cascade-particle {
+        pointer-events: none;
+      }
+
+      /* Hop progress */
+      #hop-dots {
+        display: flex;
+        gap: 5px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .hop-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--border);
+        transition: background 0.3s;
+      }
+      .hop-dot.done {
+        background: var(--cascade-active);
+        box-shadow: 0 0 5px var(--cascade-glow);
+      }
+      .hop-dot.active {
+        background: #fff;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+      }
+
+      .cascade-controls-row {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .ctrl-btn {
+        flex: 1;
+        padding: 5px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        border-radius: 5px;
+        font-size: 10px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+      }
+      .ctrl-btn:hover {
+        border-color: var(--accent);
+        color: var(--text);
+      }
+
+      #cascade-section {
+        display: none;
+      }
+      #top10-section-wrap {
+        display: block;
+      }
+
+      .affected-hop-badge {
+        font-size: 8px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        background: rgba(255, 107, 53, 0.15);
+        color: var(--cascade-active);
+        font-family: "DM Mono", monospace;
+        flex-shrink: 0;
+      }
+
+      .stat-pill .value,
+      .affected-code,
+      .top10-val,
+      .airport-label {
+        font-family: "JetBrains Mono", monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOP BAR -->
+    <div id="topbar">
+      <div class="logo">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style="color: var(--accent); width: 22px; height: 22px"
+        >
+          <path
+            d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L3 8l6 5.5-3.5 3.5-3-1-1 1 3 3 3 3 1-1-1-3 3.5-3.5 5.5 6 1.2-.7c.4-.2.7-.6.6-1.1z"
+          />
+        </svg>
+        Flight Delay Propagation Network
+      </div>
+      <div style="font-size: 10px; color: var(--text-dim)">
+        Jan–Nov 2025 · BTS On-Time Data
+      </div>
+      <div class="stats">
+        <div class="stat-pill">
+          <span class="label">Airports</span
+          ><span class="value" id="stat-airports">349</span>
+        </div>
+        <div class="stat-pill">
+          <span class="label">Routes</span
+          ><span class="value" id="stat-routes">6,582</span>
+        </div>
+        <div class="stat-pill">
+          <span class="label">Propagation Events</span
+          ><span class="value" id="stat-events">696,975</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div id="main">
+      <!-- SIDEBAR -->
+      <div id="sidebar">
+        <div class="panel-section">
+          <div class="panel-label">View Mode</div>
+          <div id="mode-tabs">
+            <div class="mode-tab active" data-mode="risk">Risk Score</div>
+            <div class="mode-tab" data-mode="volume">Volume</div>
+            <div class="mode-tab" data-mode="cascade">Cascade</div>
+          </div>
+        </div>
+
+        <!-- Cascade controls -->
+        <div class="panel-section" id="cascade-section">
+          <div class="panel-label">Cascade Simulation</div>
+          <div class="ctrl-label">Seed Airport</div>
+          <select id="seed-select"></select>
+          <div class="ctrl-label">
+            Edge Filter — min events on route:
+            <span id="edge-filter-val">50</span>+
+          </div>
+          <input
+            type="range"
+            id="edge-filter"
+            min="0"
+            max="200"
+            step="10"
+            value="50"
+          />
+          <button id="play-btn">▶ Play Cascade</button>
+          <div id="cascade-status"></div>
+          <div id="hop-dots"></div>
+          <div class="cascade-controls-row">
+            <button class="ctrl-btn" id="stop-btn">■ Stop</button>
+            <button class="ctrl-btn" id="replay-btn">↺ Replay</button>
+          </div>
+        </div>
+
+        <!-- Top 10 for Risk/Volume -->
+        <div
+          id="top10-section-wrap"
+          style="
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          "
+        >
+          <div class="panel-section" style="padding-bottom: 8px">
+            <div class="panel-label" id="top10-label">Top 10 · Risk Score</div>
+          </div>
+          <div id="top10-list"></div>
+        </div>
+
+        <!-- Affected airports (cascade mode) -->
+        <div
+          id="cascade-affected-wrap"
+          style="
+            display: none;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          "
+        >
+          <div class="panel-section" style="padding-bottom: 8px">
+            <div class="panel-label">Cascade — Affected Airports</div>
+          </div>
+          <div id="affected-list"></div>
+        </div>
+
+        <!-- Legend -->
+        <div id="legend-section">
+          <div class="panel-label">Legend</div>
+          <div class="legend-items" id="legend-items"></div>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div id="map-area">
+        <svg id="map-svg"></svg>
+
+        <div id="zoom-controls">
+          <button class="zoom-btn" id="zoom-in">+</button>
+          <button class="zoom-btn" id="zoom-out">−</button>
+          <button class="zoom-btn" id="zoom-reset" style="font-size: 10px">
+            ⊡
+          </button>
+        </div>
+
+        <button id="help-btn">? How to use</button>
+      </div>
+    </div>
+
+    <!-- TOOLTIP -->
+    <div id="tooltip"></div>
+
+    <!-- DETAIL PANEL -->
+    <div id="detail-panel">
+      <span id="detail-close">×</span>
+      <div class="dp-head">
+        <div class="dp-code" id="dp-code">DFW</div>
+        <div class="dp-city" id="dp-city">Dallas/Fort Worth</div>
+      </div>
+      <div class="dp-body">
+        <div class="dp-grid" id="dp-grid"></div>
+        <div class="dp-section-label">Delay Cause Breakdown</div>
+        <div id="dp-causes"></div>
+      </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="help-modal">
+      <div class="help-box">
+        <h2>Flight Delay Propagation</h2>
+        <p class="sub">
+          Interactive network visualization · Jan–Nov 2025 BTS data
+        </p>
+        <div class="help-section">
+          <h3>What you're seeing</h3>
+          <p>
+            Each circle is a US airport. Connecting lines show routes where a
+            late aircraft at one airport caused the next flight to depart late —
+            a <em>propagation event</em>. The bigger and redder the circle, the
+            more that airport drives cascading delays.
+          </p>
+        </div>
+        <div class="help-section">
+          <h3>View Modes</h3>
+          <ul>
+            <li>
+              <strong>Risk Score</strong> — node color/size by avg delay
+              severity per event
+            </li>
+            <li>
+              <strong>Volume</strong> — node size by total propagation event
+              count
+            </li>
+            <li>
+              <strong>Cascade</strong> — simulate a delay shock spreading from a
+              hub
+            </li>
+          </ul>
+        </div>
+        <div class="help-section">
+          <h3>Interactions</h3>
+          <ul>
+            <li><strong>Hover</strong> airport → see all metrics</li>
+            <li>
+              <strong>Click</strong> airport → open detail panel with cause
+              breakdown
+            </li>
+            <li>
+              <strong>Cascade mode</strong> → select a seed, click Play Cascade
+            </li>
+            <li>
+              <strong>Top 10 list</strong> → click any row to zoom to that
+              airport
+            </li>
+            <li><strong>Scroll / drag</strong> the map to explore</li>
+          </ul>
+        </div>
+        <div class="help-section">
+          <h3>Thresholds</h3>
+          <p>
+            A flight is considered delayed if arrival or departure exceeds 15
+            minutes — the BTS standard. The 15-minute threshold filters gate
+            holds and minor ATC micro-delays.
+          </p>
+        </div>
+        <button
+          class="help-close-btn"
+          id="help-close-btn"
+          onclick="
+            document.getElementById('help-modal').classList.remove('visible')
+          "
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // ═══════════════════════════════════════════
+      //  LOAD REAL DATA FROM JSON FILES
+      // ═══════════════════════════════════════════
+      let AIRPORTS_DATA = [];
+      let EDGES_DATA = [];
+      let CASCADE_DATA = {};
+
+      Promise.all([
+        d3.json("data/network_graph.json"),
+        d3.json("data/cascade_results.json"),
+      ])
+        .then(([graph, cascades]) => {
+          // --- AIRPORTS_DATA: map nodes from network_graph.json ---
+          AIRPORTS_DATA = graph.nodes
+            .map((n) => ({
+              id: n.id,
+              city: n.city,
+              state: n.state,
+              lat: n.lat,
+              lon: n.lon,
+              out_events: n.out_events,
+              in_events: n.in_events,
+              prop_risk_score: n.prop_risk_score,
+              betweenness: n.betweenness,
+              pagerank: n.pagerank,
+              net_export: n.net_export,
+              late_aircraft_events: n.late_aircraft_events ?? 0,
+              weather_events: n.weather_events ?? 0,
+              nas_events: n.nas_events ?? 0,
+              carrier_events: n.carrier_events ?? 0,
+            }))
+            .filter((n) => n.lat != null && n.lon != null); // drop the airports with no coords
+
+          // --- EDGES_DATA: map links from network_graph.json ---
+          EDGES_DATA = graph.links.map((l) => ({
+            source: l.source,
+            target: l.target,
+            event_count: l.event_count,
+            avg_delay: l.avg_delay,
+            late_aircraft_events: l.late_aircraft_events ?? 0,
+            weather_events: l.weather_events ?? 0,
+            nas_events: l.nas_events ?? 0,
+            carrier_events: l.carrier_events ?? 0,
+          }));
+
+          // --- CASCADE_DATA: already matches the shape the viz expects ---
+          CASCADE_DATA = cascades;
+
+          // Update header stats with real numbers
+          const totalEvents = EDGES_DATA.reduce((s, e) => s + e.event_count, 0);
+          document.getElementById("stat-airports").textContent =
+            AIRPORTS_DATA.length;
+          document.getElementById("stat-routes").textContent =
+            EDGES_DATA.length.toLocaleString();
+          document.getElementById("stat-events").textContent =
+            totalEvents.toLocaleString();
+
+          // Kick off the visualization now that data is ready
+          initVisualization();
+        })
+        .catch((err) => {
+          console.error("Failed to load JSON data:", err);
+          const errDiv = document.createElement("div");
+          errDiv.style.cssText =
+            "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2e;border:2px solid #f43f5e;color:#f43f5e;padding:28px 36px;border-radius:10px;font-family:monospace;max-width:600px;width:90%;z-index:9999";
+          errDiv.innerHTML =
+            '<div style="font-size:16px;margin-bottom:12px;font-weight:bold">⚠ Could not load data files</div>' +
+            '<div style="font-size:12px;color:#ff9999;background:#2a0a0a;padding:10px 14px;border-radius:6px;margin-bottom:14px;word-break:break-all">' +
+            err.message +
+            "</div>" +
+            '<div style="font-size:12px;color:#aaa;line-height:1.8"><b style="color:#fff">Check:</b> Run <code style="color:#7cf">python -m http.server 8080</code> from the folder containing index.html, with data/ alongside it.</div>';
+          document.body.appendChild(errDiv);
+        });
+
+      // ═══════════════════════════════════════════
+      //  STATE
+      // ═══════════════════════════════════════════
+      let currentMode = "risk";
+      let selectedNode = null;
+      let cascadeRunning = false;
+      let cascadeTimer = null;
+      let cascadeStep = 0;
+      let cascadeData = null;
+      let affectedState = {};
+
+      // ═══════════════════════════════════════════
+      //  COLOR HELPERS
+      // ═══════════════════════════════════════════
+      function riskColor(score) {
+        if (score >= 65) return "#f43f5e";
+        if (score >= 50) return "#fb923c";
+        if (score >= 35) return "#f59e0b";
+        return "#22c55e";
+      }
+
+      function riskLabel(score) {
+        if (score >= 65) return "High";
+        if (score >= 35) return "Medium";
+        return "Low";
+      }
+
+      function edgeColor(ec, maxEc) {
+        const t = Math.min(ec / maxEc, 1);
+        // Interpolates between Blue (#3b82f6) and Orange-Red (#ff6b35)
+        const r = Math.round(59 + (255 - 59) * t);
+        const g = Math.round(130 + (107 - 130) * t);
+        const b = Math.round(246 + (53 - 246) * t);
+
+        // Opacity: increased to make them pop against the slate
+        return `rgba(${r}, ${g}, ${b}, ${0.25 + t * 0.65})`;
+      }
+
+      function edgeWidth(ec, maxEc) {
+        return 0.5 + (ec / maxEc) * 3;
+      }
+
+      // ═══════════════════════════════════════════
+      //  US MAP PROJECTION
+      // ═══════════════════════════════════════════
+      const svg = d3.select("#map-svg");
+      const mapArea = document.getElementById("map-area");
+
+      function getMapDims() {
+        return { w: mapArea.clientWidth, h: mapArea.clientHeight };
+      }
+
+      let { w, h } = getMapDims();
+
+      // Albers USA projection
+      const projection = d3
+        .geoAlbersUsa()
+        .scale(w * 1.15)
+        .translate([w * 0.5, h * 0.5]);
+
+      const zoom = d3
+        .zoom()
+        .scaleExtent([0.5, 12])
+        .on("zoom", (event) => {
+          gMain.attr("transform", event.transform);
+        });
+
+      svg.call(zoom);
+
+      const gMain = svg.append("g").attr("id", "g-main");
+      const gStates = gMain.append("g").attr("id", "g-states");
+      const gEdges = gMain.append("g").attr("id", "g-edges");
+      const gNodes = gMain.append("g").attr("id", "g-nodes");
+      const gLabels = gMain.append("g").attr("id", "g-labels");
+      const gParticles = gMain.append("g").attr("id", "g-particles");
+
+      // ═══════════════════════════════════════════
+      //  LOAD & DRAW US MAP OUTLINE
+      // ═══════════════════════════════════════════
+      // Embedded simplified US states paths (approximate, for visual)
+      const US_STATES_GEOJSON_URL =
+        "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
+
+      fetch(US_STATES_GEOJSON_URL)
+        .then((r) => r.json())
+        .then((us) => {
+          const path = d3.geoPath().projection(projection);
+          const topojson_feature = (us, obj) => {
+            // simple topojson decode
+            const arcs = us.arcs;
+            const geom = obj;
+            return {
+              type: "FeatureCollection",
+              features: geom.geometries.map((g) => ({
+                type: "Feature",
+                properties: g.properties || {},
+                geometry: decodeTopojson(g, arcs),
+              })),
+            };
+          };
+          const decode = window.topojson_feature_fn || null;
+
+          // Use d3 path with topojson
+          mapReady = true;
+          if (dataReady) initVisualization();
+        })
+        .catch(() => {
+          // Fallback: draw a simple USA outline box
+          mapReady = true;
+          if (dataReady) initVisualization();
+        });
+
+      function drawStatesFromTopojson(us, path) {
+        // Parse topojson manually
+        const statesObj = us.objects.states;
+        const features = topojsonToFeatures(us, statesObj);
+
+        gStates
+          .selectAll(".us-state")
+          .data(features)
+          .join("path")
+          .attr("class", "us-state")
+          .attr("d", path);
+
+        // Nation outline
+        const nationFeature = topojsonToNation(us);
+        if (nationFeature) {
+          gStates
+            .append("path")
+            .datum(nationFeature)
+            .attr("class", "us-outline")
+            .attr("d", path);
+        }
+
+        initVisualization();
+      }
+
+      function topojsonToFeatures(topology, obj) {
+        // Minimal topojson decoder
+        const arcs = topology.arcs;
+        return obj.geometries.map((geom) => ({
+          type: "Feature",
+          properties: geom.properties || {},
+          geometry: resolveGeom(geom, arcs, topology.transform),
+        }));
+      }
+
+      function topojsonToNation(topology) {
+        if (!topology.objects.nation) return null;
+        const obj = topology.objects.nation;
+        const arcs = topology.arcs;
+        return {
+          type: "Feature",
+          properties: {},
+          geometry: resolveGeom(
+            obj.geometries ? obj.geometries[0] : obj,
+            arcs,
+            topology.transform,
+          ),
+        };
+      }
+
+      function resolveGeom(geom, arcs, transform) {
+        const decode = (arcIdx) => {
+          const reversed = arcIdx < 0;
+          const arc = arcs[reversed ? ~arcIdx : arcIdx];
+          let x = 0,
+            y = 0;
+          const pts = arc.map(([dx, dy]) => {
+            x += dx;
+            y += dy;
+            return [
+              transform ? x * transform.scale[0] + transform.translate[0] : x,
+              transform ? y * transform.scale[1] + transform.translate[1] : y,
+            ];
+          });
+          return reversed ? pts.reverse() : pts;
+        };
+
+        const joinArcs = (arcs_list) => {
+          const pts = [];
+          arcs_list.forEach((a) => {
+            const p = decode(a);
+            if (pts.length) p.shift();
+            pts.push(...p);
+          });
+          return pts;
+        };
+
+        if (geom.type === "Polygon") {
+          return {
+            type: "Polygon",
+            coordinates: geom.arcs.map((ring) => joinArcs(ring)),
+          };
+        } else if (geom.type === "MultiPolygon") {
+          return {
+            type: "MultiPolygon",
+            coordinates: geom.arcs.map((poly) =>
+              poly.map((ring) => joinArcs(ring)),
+            ),
+          };
+        }
+        return null;
+      }
+
+      function drawFallbackOutline() {
+        // Simple rectangle approximating CONUS
+        gStates
+          .append("rect")
+          .attr("x", projection([-125, 50])?.[0] ?? 50)
+          .attr("y", projection([-125, 50])?.[1] ?? 50)
+          .attr("width", 800)
+          .attr("height", 400)
+          .attr("fill", "#131929")
+          .attr("stroke", "#2a3a5e")
+          .attr("stroke-width", 1);
+        initVisualization();
+      }
+
+      // ═══════════════════════════════════════════
+      //  INIT VISUALIZATION
+      // ═══════════════════════════════════════════
+      function initVisualization() {
+        projectAirports();
+        drawEdges();
+        drawNodes();
+        drawLabels();
+        populateTop10();
+        populateSeedSelect();
+        buildHopDots();
+        updateLegend();
+      }
+
+      // Project airport coordinates
+      const airportPos = {};
+      let maxOutEvents = 1,
+        maxRisk = 1,
+        maxEc = 1;
+
+      function projectAirports() {
+        Object.keys(airportPos).forEach((k) => delete airportPos[k]);
+        AIRPORTS_DATA.forEach((d) => {
+          const p = projection([d.lon, d.lat]);
+          if (p) airportPos[d.id] = { x: p[0], y: p[1], data: d };
+        });
+        maxOutEvents = Math.max(1, ...AIRPORTS_DATA.map((d) => d.out_events));
+        maxRisk = Math.max(1, ...AIRPORTS_DATA.map((d) => d.prop_risk_score));
+        maxEc = Math.max(1, ...EDGES_DATA.map((d) => d.event_count));
+      }
+
+      function nodeRadius(d) {
+        const base =
+          currentMode === "volume"
+            ? 4 + (d.out_events / maxOutEvents) * 22
+            : 4 + (d.prop_risk_score / maxRisk) * 18;
+        return base;
+      }
+      function nodeColor(d) {
+        if (currentMode === "cascade") {
+          if (affectedState[d.id])
+            return affectedState[d.id].color || "#f43f5e";
+          return "#22c55e";
+        }
+        return riskColor(d.prop_risk_score);
+      }
+
+      // ─ EDGES ─
+      function drawEdges() {
+        const minEvents =
+          parseInt(document.getElementById("edge-filter").value) || 0;
+        const edges = EDGES_DATA.filter(
+          (e) =>
+            e.event_count >= minEvents &&
+            airportPos[e.source] &&
+            airportPos[e.target],
+        );
+
+        gEdges.selectAll(".edge-path").remove();
+
+        gEdges
+          .selectAll(".edge-path")
+          .data(edges)
+          .join("path")
+          .attr("class", "edge-path")
+          .attr("d", (d) => {
+            const s = airportPos[d.source],
+              t = airportPos[d.target];
+            const mx = (s.x + t.x) / 2,
+              my = (s.y + t.y) / 2 - 20;
+            return `M${s.x},${s.y} Q${mx},${my} ${t.x},${t.y}`;
+          })
+          .attr("stroke", (d) => edgeColor(d.event_count, maxEc))
+          .attr("stroke-width", (d) => edgeWidth(d.event_count, maxEc));
+      }
+
+      // ─ NODES ─
+      function drawNodes() {
+        const circles = gNodes
+          .selectAll(".airport-node")
+          .data(AIRPORTS_DATA.filter((d) => airportPos[d.id]))
+          .join("circle")
+          .attr("class", "airport-node")
+          .attr("cx", (d) => airportPos[d.id].x)
+          .attr("cy", (d) => airportPos[d.id].y)
+          .attr("r", (d) => nodeRadius(d))
+          .attr("fill", (d) => nodeColor(d))
+          .attr("fill-opacity", 0.85)
+          .attr("stroke", (d) => nodeColor(d))
+          .attr("stroke-width", 1.5)
+          .attr("stroke-opacity", 0.4)
+          .on("mousemove", showTooltip)
+          .on("mouseleave", hideTooltip)
+          .on("click", handleNodeClick);
+
+        // Glow rings for high-risk
+        gNodes.selectAll(".glow-ring").remove();
+        if (currentMode !== "cascade") {
+          AIRPORTS_DATA.filter(
+            (d) => d.prop_risk_score >= 55 && airportPos[d.id],
+          ).forEach((d) => {
+            gNodes
+              .insert("circle", ".airport-node")
+              .attr("class", "glow-ring")
+              .attr("cx", airportPos[d.id].x)
+              .attr("cy", airportPos[d.id].y)
+              .attr("r", nodeRadius(d) + 4)
+              .attr("fill", "none")
+              .attr("stroke", riskColor(d.prop_risk_score))
+              .attr("stroke-width", 1)
+              .attr("stroke-opacity", 0.3);
+          });
+        }
+      }
+
+      function updateNodes() {
+        gNodes
+          .selectAll(".airport-node")
+          .attr("r", (d) => nodeRadius(d))
+          .attr("fill", (d) => nodeColor(d))
+          .attr("stroke", (d) => nodeColor(d));
+      }
+
+      // ─ LABELS ─
+      function drawLabels() {
+        const minEvents = 10000;
+        gLabels.selectAll(".airport-label").remove();
+        gLabels
+          .selectAll(".airport-label")
+          .data(
+            AIRPORTS_DATA.filter(
+              (d) => d.out_events >= minEvents && airportPos[d.id],
+            ),
+          )
+          .join("text")
+          .attr("class", "airport-label")
+          .attr("x", (d) => airportPos[d.id].x)
+          .attr("y", (d) => airportPos[d.id].y - nodeRadius(d) - 4) // above the node, not below
+          .style("font-size", "8px")
+          .style("font-weight", "600")
+          .style("fill", "rgba(226,232,247,0.9)")
+          .style("paint-order", "stroke")
+          .style("stroke", "rgba(10,13,20,0.85)")
+          .style("stroke-width", "3px")
+          .style("stroke-linejoin", "round")
+          .text((d) => d.id);
+      }
+
+      // ═══════════════════════════════════════════
+      //  TOOLTIP
+      // ═══════════════════════════════════════════
+      const tooltip = document.getElementById("tooltip");
+
+      function showTooltip(event, d) {
+        const tier = riskLabel(d.prop_risk_score);
+        const tierClass = tier.toLowerCase();
+        tooltip.innerHTML = `
+        <div class="tt-header">
+        <span class="tt-code">${d.id}</span>
+        <span class="tt-city">${d.city}, ${d.state}</span>
+        <span class="tt-badge ${tierClass}">${tier} Risk</span>
+        </div>
+        <div class="tt-metrics">
+        <div class="tt-metric"><div class="ml">Risk Score</div><div class="mv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(1)}</div></div>
+        <div class="tt-metric"><div class="ml">Out Events</div><div class="mv">${d.out_events.toLocaleString()}</div></div>
+        <div class="tt-metric"><div class="ml">PageRank</div><div class="mv">${d.pagerank.toFixed(4)}</div></div>
+        <div class="tt-metric"><div class="ml">Betweenness</div><div class="mv">${d.betweenness.toFixed(4)}</div></div>
+        <div class="tt-metric"><div class="ml">Net Export</div><div class="mv">${d.net_export >= 0 ? "+" : ""}${d.net_export.toLocaleString()}</div></div>
+        <div class="tt-metric"><div class="ml">In Events</div><div class="mv">${d.in_events.toLocaleString()}</div></div>
+        <div class="tt-metric"><div class="ml">Lat</div><div class="mv">${d.lat != null ? d.lat.toFixed(2) + "°" : "N/A"}</div></div>
+        <div class="tt-metric"><div class="ml">Lon</div><div class="mv">${d.lon != null ? d.lon.toFixed(2) + "°" : "N/A"}</div></div>
+        </div>
+        <div style="margin-top:6px;font-size:9px;color:var(--text-dimmer)">Click to open full details</div>`;
+        tooltip.classList.add("visible");
+        posTooltip(event);
+      }
+
+      function posTooltip(event) {
+        const rect = mapArea.getBoundingClientRect();
+        let x = event.clientX - rect.left + 14;
+        let y = event.clientY - rect.top - 20;
+        const ttW = 240,
+          ttH = 120;
+        if (x + ttW > rect.width) x = event.clientX - rect.left - ttW - 8;
+        if (y + ttH > rect.height) y = event.clientY - rect.top - ttH - 8;
+        if (y < 0) y = 8;
+        if (x < 0) x = 8;
+        tooltip.style.left = x + "px";
+        tooltip.style.top = y + "px";
+      }
+
+      svg.on("mousemove", (event) => {
+        if (tooltip.classList.contains("visible")) posTooltip(event);
+      });
+
+      function hideTooltip() {
+        tooltip.classList.remove("visible");
+      }
+
+      // ═══════════════════════════════════════════
+      //  DETAIL PANEL
+      // ═══════════════════════════════════════════
+      function handleNodeClick(event, d) {
+        event.stopPropagation();
+        selectedNode = d.id;
+
+        if (currentMode === "cascade") {
+          // In cascade mode, also set as seed
+          document.getElementById("seed-select").value = d.id;
+        }
+
+        showDetailPanel(d);
+        highlightSelectedNode(d.id);
+      }
+
+      function highlightSelectedNode(id) {
+        // Remove previous highlight ring
+        gNodes.selectAll(".selected-ring").remove();
+        if (!id || !airportPos[id]) return;
+        const pos = airportPos[id];
+        const d = AIRPORTS_DATA.find((a) => a.id === id);
+        if (!d) return;
+        const r = nodeRadius(d);
+        // Outer pulsing ring
+        gNodes
+          .append("circle")
+          .attr("class", "selected-ring")
+          .attr("cx", pos.x)
+          .attr("cy", pos.y)
+          .attr("r", r + 7)
+          .attr("fill", "none")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2.5)
+          .attr("stroke-opacity", 0.9)
+          .attr("pointer-events", "none");
+        // Label override — draw a larger label for selected airport
+        gLabels.selectAll(".selected-label").remove();
+        gLabels
+          .append("text")
+          .attr("class", "selected-label")
+          .attr("x", pos.x)
+          .attr("y", pos.y - r - 12)
+          .style("font-size", "11px")
+          .style("font-weight", "700")
+          .style("fill", "#fff")
+          .style("paint-order", "stroke")
+          .style("stroke", "rgba(10,13,20,0.95)")
+          .style("stroke-width", "4px")
+          .style("stroke-linejoin", "round")
+          .attr("text-anchor", "middle")
+          .attr("pointer-events", "none")
+          .text(id);
+      }
+
+      function showDetailPanel(d) {
+        document.getElementById("dp-code").textContent = d.id;
+        document.getElementById("dp-city").textContent =
+          `${d.city}, ${d.state}`;
+
+        // Aggregate cause data from outbound edges (nodes don't carry cause fields in network_graph.json)
+        const outEdges = EDGES_DATA.filter((e) => e.source === d.id);
+        const lateAC = outEdges.reduce(
+          (s, e) => s + (e.late_aircraft_events || 0),
+          0,
+        );
+        const weather = outEdges.reduce(
+          (s, e) => s + (e.weather_events || 0),
+          0,
+        );
+        const nas = outEdges.reduce((s, e) => s + (e.nas_events || 0), 0);
+        const carrier = outEdges.reduce(
+          (s, e) => s + (e.carrier_events || 0),
+          0,
+        );
+        const total = lateAC + weather + nas + carrier;
+
+        document.getElementById("dp-grid").innerHTML = `
+        <div class="dp-metric"><div class="dml">Risk Score</div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(1)}</div></div>
+        <div class="dp-metric"><div class="dml">Risk Tier</div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${riskLabel(d.prop_risk_score)}</div></div>
+        <div class="dp-metric"><div class="dml">Out Events</div><div class="dmv">${d.out_events.toLocaleString()}</div></div>
+        <div class="dp-metric"><div class="dml">In Events</div><div class="dmv">${d.in_events.toLocaleString()}</div></div>
+        <div class="dp-metric"><div class="dml">Net Export</div><div class="dmv">${d.net_export >= 0 ? "+" : ""}${d.net_export.toLocaleString()}</div></div>
+        <div class="dp-metric"><div class="dml">PageRank</div><div class="dmv">${d.pagerank.toFixed(4)}</div></div>
+        <div class="dp-metric"><div class="dml">Betweenness</div><div class="dmv">${d.betweenness.toFixed(4)}</div></div>
+        <div class="dp-metric"><div class="dml">Coordinates</div><div class="dmv" style="font-size:10px">${d.lat.toFixed(2)}°, ${d.lon.toFixed(2)}°</div></div>
+    `;
+
+        const causes = [
+          { label: "Late Aircraft", val: lateAC, color: "#f59e0b" },
+          { label: "NAS/ATC", val: nas, color: "#3b82f6" },
+          { label: "Carrier", val: carrier, color: "#8b5cf6" },
+          { label: "Weather", val: weather, color: "#06b6d4" },
+        ];
+        document.getElementById("dp-causes").innerHTML = causes
+          .map((c) => {
+            const pct = total ? Math.round((c.val / total) * 100) : 0;
+            return `<div class="cause-row">
+        <div class="cause-label">${c.label}</div>
+        <div class="cause-bar-wrap"><div class="cause-bar" style="width:${pct}%;background:${c.color}"></div></div>
+        <div class="cause-pct">${pct}%</div>
+        </div>`;
+          })
+          .join("");
+
+        document.getElementById("detail-panel").classList.add("visible");
+      }
+
+      document.getElementById("detail-close").addEventListener("click", () => {
+        document.getElementById("detail-panel").classList.remove("visible");
+        gNodes.selectAll(".selected-ring").remove();
+        gLabels.selectAll(".selected-label").remove();
+        selectedNode = null;
+      });
+      svg.on("click", () => {
+        document.getElementById("detail-panel").classList.remove("visible");
+        gNodes.selectAll(".selected-ring").remove();
+        gLabels.selectAll(".selected-label").remove();
+        selectedNode = null;
+      });
+
+      // ═══════════════════════════════════════════
+      //  MODE SWITCHING
+      // ═══════════════════════════════════════════
+      document.querySelectorAll(".mode-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document
+            .querySelectorAll(".mode-tab")
+            .forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+          currentMode = tab.dataset.mode;
+
+          const isCascade = currentMode === "cascade";
+          document.getElementById("cascade-section").style.display = isCascade
+            ? "block"
+            : "none";
+          document.getElementById("top10-section-wrap").style.display =
+            isCascade ? "none" : "flex";
+          document.getElementById("top10-section-wrap").style.flexDirection =
+            "column";
+          document.getElementById("cascade-affected-wrap").style.display =
+            isCascade ? "flex" : "none";
+          document.getElementById("cascade-affected-wrap").style.flexDirection =
+            "column";
+          document.getElementById("detail-panel").classList.remove("visible");
+
+          if (!isCascade) {
+            stopCascade();
+            affectedState = {};
+            populateTop10();
+            document.getElementById("top10-label").textContent =
+              currentMode === "risk"
+                ? "Top 10 · Risk Score"
+                : "Top 10 · Volume (Events)";
+          }
+
+          updateLegend();
+          drawEdges();
+          drawNodes();
+          updateNodes();
+        });
+      });
+
+      function updateLegend() {
+        const el = document.getElementById("legend-items");
+        const titleEl = document.getElementById("top10-label");
+
+        // Choose labels based on mode
+        const isCascade = currentMode === "cascade";
+        const labelHigh = isCascade
+          ? "High risk / affected"
+          : "High risk (score > 65)";
+        const labelMed = isCascade ? "Medium risk" : "Medium risk (35–65)";
+        const labelLow = isCascade
+          ? "Low risk / unaffected"
+          : "Low risk (score < 35)";
+
+        el.innerHTML = `
+    <div style="font-size: 9px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; letter-spacing: 0.05em;">Airports</div>
+    <div class="legend-row"><div class="legend-dot" style="background:var(--high-risk)"></div>${labelHigh}</div>
+    <div class="legend-row"><div class="legend-dot" style="background:var(--med-risk)"></div>${labelMed}</div>
+    <div class="legend-row"><div class="legend-dot" style="background:var(--low-risk)"></div>${labelLow}</div>
+    
+    <div style="font-size: 9px; text-transform: uppercase; color: var(--text-dim); margin: 12px 0 6px 0; letter-spacing: 0.05em;">Routes</div>
+    <div class="legend-row"><div class="legend-line" style="background:var(--edge-high)"></div>High propagation</div>
+    <div class="legend-row"><div class="legend-line" style="background:var(--edge-low)"></div>Low propagation</div>
+  `;
+      }
+
+      // ═══════════════════════════════════════════
+      //  TOP 10 LIST
+      // ═══════════════════════════════════════════
+      function populateTop10() {
+        const metric =
+          currentMode === "volume" ? "out_events" : "prop_risk_score";
+        const top10 = [...AIRPORTS_DATA]
+          .sort((a, b) => b[metric] - a[metric])
+          .slice(0, 10);
+        const maxVal = top10[0][metric];
+
+        document.getElementById("top10-list").innerHTML = top10
+          .map((d, i) => {
+            const val = d[metric];
+            const color = riskColor(d.prop_risk_score);
+            const display =
+              metric === "out_events" ? val.toLocaleString() : val.toFixed(1);
+            return `<div class="top10-row" onclick="flyToAirport('${d.id}')">
+        <span class="rank-num">${i + 1}</span>
+        <span class="top10-code" style="color:${color}">${d.id}</span>
+        <span class="top10-city">${d.city}</span>
+        <div class="top10-bar-wrap"><div class="top10-bar" style="width:${(100 * val) / maxVal}%;background:${color}"></div></div>
+        <span class="top10-val">${display}</span>
+        </div>`;
+          })
+          .join("");
+      }
+
+      window.flyToAirport = function (id) {
+        const pos = airportPos[id];
+        if (!pos) return;
+        const { w, h } = getMapDims();
+        const scale = 4;
+        const tx = w / 2 - scale * pos.x;
+        const ty = h / 2 - scale * pos.y;
+        svg
+          .transition()
+          .duration(800)
+          .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+        const d = AIRPORTS_DATA.find((a) => a.id === id);
+        if (d) {
+          selectedNode = id;
+          showDetailPanel(d);
+          highlightSelectedNode(id);
+          if (currentMode === "cascade") {
+            document.getElementById("seed-select").value = id;
+          }
+        }
+      };
+
+      // ═══════════════════════════════════════════
+      //  CASCADE SIMULATION
+      // ═══════════════════════════════════════════
+      function populateSeedSelect() {
+        const seeds = Object.keys(CASCADE_DATA);
+        const sel = document.getElementById("seed-select");
+        sel.innerHTML = seeds
+          .map((s) => {
+            const d = AIRPORTS_DATA.find((a) => a.id === s);
+            return `<option value="${s}">${s} — ${d ? d.city : ""}</option>`;
+          })
+          .join("");
+      }
+
+      function buildHopDots() {
+        document.getElementById("hop-dots").innerHTML = "";
+      }
+
+      function stopCascade() {
+        if (cascadeTimer) clearTimeout(cascadeTimer);
+        cascadeRunning = false;
+        cascadeStep = 0;
+        cascadeTimer = null;
+        document.getElementById("play-btn").textContent = "▶ Play Cascade";
+        document.getElementById("play-btn").classList.remove("playing");
+      }
+
+      function resetCascadeVisuals() {
+        affectedState = {};
+        gParticles.selectAll("*").remove();
+        gEdges.selectAll(".cascade-edge").remove();
+        updateNodes();
+        document.getElementById("cascade-status").textContent = "";
+        document.getElementById("affected-list").innerHTML = "";
+        document.getElementById("hop-dots").innerHTML = "";
+      }
+
+      document.getElementById("play-btn").addEventListener("click", () => {
+        if (cascadeRunning) {
+          stopCascade();
+          resetCascadeVisuals();
+          return;
+        }
+        startCascade();
+      });
+      document.getElementById("stop-btn").addEventListener("click", () => {
+        stopCascade();
+        resetCascadeVisuals();
+      });
+      document.getElementById("replay-btn").addEventListener("click", () => {
+        stopCascade();
+        resetCascadeVisuals();
+        startCascade();
+      });
+
+      function startCascade() {
+        const seed = document.getElementById("seed-select").value;
+        cascadeData = CASCADE_DATA[seed];
+        if (!cascadeData) return;
+
+        cascadeRunning = true;
+        cascadeStep = 0;
+        affectedState = {};
+        document.getElementById("play-btn").textContent = "■ Stop";
+        document.getElementById("play-btn").classList.add("playing");
+
+        // Mark seed
+        affectedState[seed] = { delay: 15, hop: 0, color: "#f43f5e" };
+        updateNodes();
+
+        // Build hop dots — one per hop, all shown upfront as empty
+        const dotsEl = document.getElementById("hop-dots");
+        dotsEl.innerHTML =
+          cascadeData
+            .map(
+              (_, i) =>
+                `<div class="hop-dot" id="hdot-${i}" title="Hop ${i + 1}"></div>`,
+            )
+            .join("") +
+          `<span style="font-size:9px;color:var(--text-dimmer);margin-left:4px">${cascadeData.length} hops</span>`;
+
+        // Update status
+        document.getElementById("cascade-status").textContent =
+          `Hop 0 · Seed: ${seed} · 15.0 min`;
+
+        runNextHop(seed);
+      }
+
+      function runNextHop(seed) {
+        if (cascadeStep >= cascadeData.length) {
+          document.getElementById("play-btn").textContent = "▶ Play Cascade";
+          document.getElementById("play-btn").classList.remove("playing");
+          cascadeRunning = false;
+          return;
+        }
+
+        const step = cascadeData[cascadeStep];
+        const hopNum = cascadeStep + 1;
+
+        // Update dot
+        document.querySelectorAll(".hop-dot").forEach((d, i) => {
+          d.classList.remove("active", "done");
+          if (i < cascadeStep) d.classList.add("done"); // completed hops = filled
+          if (i === cascadeStep) d.classList.add("active"); // current hop = bright white
+        });
+
+        // Animate particles from seed/prev airports to newly affected
+        const sources =
+          cascadeStep === 0
+            ? [seed]
+            : cascadeData[cascadeStep - 1].newly_affected.concat([seed]);
+
+        step.newly_affected.forEach((target) => {
+          const delay = step.wave[target] || 0;
+          affectedState[target] = {
+            delay,
+            hop: hopNum,
+            color: delay >= 5 ? "#f43f5e" : delay >= 2 ? "#fb923c" : "#f59e0b",
+          };
+
+          // Pick a source for animation
+          const src =
+            sources.find((s) => airportPos[s] && airportPos[target]) || seed;
+          animateParticle(src, target, hopNum);
+        });
+
+        // Update status
+        document.getElementById("cascade-status").textContent =
+          `Hop ${hopNum} · ${step.total_airports} airports reached · ${step.total_delay.toFixed(0)} min total delay`;
+
+        cascadeStep++;
+
+        // Update nodes after animation starts
+        setTimeout(() => {
+          updateNodes();
+          updateAffectedList();
+        }, 400);
+
+        cascadeTimer = setTimeout(() => {
+          if (cascadeRunning) runNextHop(seed);
+        }, 1800);
+      }
+
+      function animateParticle(srcId, tgtId, hop) {
+        const s = airportPos[srcId],
+          t = airportPos[tgtId];
+        if (!s || !t) return;
+
+        const particle = gParticles
+          .append("circle")
+          .attr("class", "cascade-particle")
+          .attr("r", 3)
+          .attr("fill", "#ff6b35")
+          .attr("opacity", 0.9)
+          .attr("cx", s.x)
+          .attr("cy", s.y);
+
+        const mx = (s.x + t.x) / 2,
+          my = (s.y + t.y) / 2 - 20;
+
+        // Draw glowing edge
+        const ePath = gEdges
+          .append("path")
+          .attr("class", "cascade-edge")
+          .attr("d", `M${s.x},${s.y} Q${mx},${my} ${t.x},${t.y}`)
+          .attr("fill", "none")
+          .attr("stroke", "#ff6b35")
+          .attr("stroke-width", 1.5)
+          .attr("stroke-opacity", 0)
+          .attr("filter", "url(#glow)");
+
+        ePath
+          .transition()
+          .duration(400)
+          .attr("stroke-opacity", 0.8)
+          .transition()
+          .duration(800)
+          .attr("stroke-opacity", 0.3);
+
+        // Animate particle along path
+        const pathNode = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
+        pathNode.setAttribute("d", `M${s.x},${s.y} Q${mx},${my} ${t.x},${t.y}`);
+        const pathLen = pathNode.getTotalLength();
+
+        particle
+          .transition()
+          .duration(700)
+          .ease(d3.easeQuadInOut)
+          .attrTween("cx", () => (t) => {
+            const pt = pathNode.getPointAtLength(t * pathLen);
+            return pt.x;
+          })
+          .attrTween("cy", () => (t) => {
+            const pt = pathNode.getPointAtLength(t * pathLen);
+            return pt.y;
+          })
+          .attr("opacity", 0)
+          .on("end", function () {
+            d3.select(this).remove();
+          });
+
+        // Pulse at target
+        setTimeout(() => {
+          const tp = airportPos[tgtId];
+          if (!tp) return;
+          gParticles
+            .append("circle")
+            .attr("cx", tp.x)
+            .attr("cy", tp.y)
+            .attr("r", 4)
+            .attr("fill", "none")
+            .attr("stroke", "#ff6b35")
+            .attr("stroke-width", 2)
+            .attr("opacity", 0.9)
+            .transition()
+            .duration(600)
+            .attr("r", 16)
+            .attr("opacity", 0)
+            .on("end", function () {
+              d3.select(this).remove();
+            });
+        }, 650);
+      }
+
+      // Add glow filter
+      const defs = svg.append("defs");
+      const filter = defs.append("filter").attr("id", "glow");
+      filter
+        .append("feGaussianBlur")
+        .attr("stdDeviation", "3")
+        .attr("result", "coloredBlur");
+      const merge = filter.append("feMerge");
+      merge.append("feMergeNode").attr("in", "coloredBlur");
+      merge.append("feMergeNode").attr("in", "SourceGraphic");
+
+      function updateAffectedList() {
+        const sorted = Object.entries(affectedState)
+          .filter(
+            ([k]) =>
+              k !== document.getElementById("seed-select").value ||
+              affectedState[k].hop > 0,
+          )
+          .sort((a, b) => b[1].delay - a[1].delay);
+
+        const seed = document.getElementById("seed-select").value;
+        const maxDelay = 15;
+
+        document.getElementById("affected-list").innerHTML = sorted
+          .slice(0, 30)
+          .map(([id, state]) => {
+            const d = AIRPORTS_DATA.find((a) => a.id === id) || { city: id };
+            return `<div class="affected-row" onclick="flyToAirport('${id}')">
+        <span class="affected-code">${id}</span>
+        <span class="affected-name">${d.city}</span>
+        <div class="delay-bar-wrap"><div class="delay-bar" style="width:${Math.min(100, (state.delay / maxDelay) * 100)}%"></div></div>
+        <span class="affected-delay" style="color:${state.color}">+${state.delay.toFixed(1)}m</span>
+        <span class="affected-hop-badge">H${state.hop}</span>
+        </div>`;
+          })
+          .join("");
+      }
+
+      // Edge filter
+      document
+        .getElementById("edge-filter")
+        .addEventListener("input", function () {
+          document.getElementById("edge-filter-val").textContent = this.value;
+          drawEdges();
+        });
+
+      // ═══════════════════════════════════════════
+      //  ZOOM CONTROLS
+      // ═══════════════════════════════════════════
+      document.getElementById("zoom-in").addEventListener("click", () => {
+        svg.transition().duration(300).call(zoom.scaleBy, 1.5);
+      });
+      document.getElementById("zoom-out").addEventListener("click", () => {
+        svg
+          .transition()
+          .duration(300)
+          .call(zoom.scaleBy, 1 / 1.5);
+      });
+      document.getElementById("zoom-reset").addEventListener("click", () => {
+        svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+      });
+
+      // ═══════════════════════════════════════════
+      //  HELP MODAL
+      // ═══════════════════════════════════════════
+      document.getElementById("help-btn").addEventListener("click", () => {
+        document.getElementById("help-modal").classList.add("visible");
+      });
+      document
+        .getElementById("help-close-btn")
+        .addEventListener("click", () => {
+          document.getElementById("help-modal").classList.remove("visible");
+        });
+
+      // ═══════════════════════════════════════════
+      //  RESIZE HANDLER
+      // ═══════════════════════════════════════════
+      window.addEventListener("resize", () => {
+        const dims = getMapDims();
+        w = dims.w;
+        h = dims.h;
+        projection.scale(w * 1.15).translate([w * 0.5, h * 0.5]);
+        AIRPORTS_DATA.forEach((d) => {
+          const p = projection([d.lon, d.lat]);
+          if (p) airportPos[d.id] = { x: p[0], y: p[1], data: d };
+        });
+        drawEdges();
+        drawNodes();
+        drawLabels();
+      });
+
+      // Show help on first load
+      setTimeout(() => {
+        document.getElementById("help-modal").classList.add("visible");
+      }, 600);
+    </script>
+  </body>
+</html>

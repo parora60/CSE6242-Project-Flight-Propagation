@@ -22,6 +22,14 @@
 
 ## 0. Quick Start — Run Everything at Once
 
+- Run everything:
+  ```bash
+  bash run_all.sh
+  ```
+- Open: [**http://localhost:8080**](http://localhost:8080)
+- Pipeline: Data → Network → Visualization (3 phases)
+
+<details>
 `run_all.sh` is a single shell script that installs dependencies, runs the full
 pipeline (Phases 1 → 2 → validation), and launches the visualization server.
 
@@ -83,15 +91,15 @@ Skips all pipeline steps and immediately starts the HTTP server. Requires
 
 ### All flags
 
-| Flag | When to use |
-|---|---|
-| _(none)_ | Auto mode — skips Phase 1 if parquet exists, always runs Phase 2 |
-| `--force-phase2` | Pipeline code changed; rebuild network/cascade from existing parquet |
-| `--force-all` | Raw CSV data changed; delete parquet and rebuild everything |
-| `--viz-only` | Data already built; skip pipeline and start server immediately |
-| `--parquet PATH` | Use a parquet file at a non-default path |
+| Flag             | When to use                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| _(none)_         | Auto mode — skips Phase 1 if parquet exists, always runs Phase 2       |
+| `--force-phase2` | Pipeline code changed; rebuild network/cascade from existing parquet   |
+| `--force-all`    | Raw CSV data changed; delete parquet and rebuild everything            |
+| `--viz-only`     | Data already built; skip pipeline and start server immediately         |
+| `--parquet PATH` | Use a parquet file at a non-default path                               |
 | `--data_dir DIR` | Write/read JSON outputs to a non-default directory (default: `./data`) |
-| `--port PORT` | Start the HTTP server on a different port (default: `8080`) |
+| `--port PORT`    | Start the HTTP server on a different port (default: `8080`)            |
 
 ### Run phases individually
 
@@ -117,7 +125,7 @@ python -m http.server 8080
 # Open http://localhost:8080
 ```
 
----
+## </details>
 
 ## 1. Project Overview
 

@@ -16,11 +16,13 @@
 3. [Phase 1 — Data Pipeline](#3-phase-1--data-pipeline)
 4. [Phase 2 — Propagation Model & Experiments](#4-phase-2--propagation-model--experiments)
 5. [Phase 3 — D3 Visualization](#5-phase-3--d3-visualization)
-6. [Known Limitations](#6-known-limitations)
+6. [Other Notes](#6-other-notes)
 
 ---
 
 ## 0. Quick Start — Run Everything at Once
+
+### TL;DR:
 
 - Run everything:
   ```bash
@@ -30,6 +32,8 @@
 - Pipeline: Data → Network → Visualization (3 phases)
 
 <details>
+<summary><h3 style="display: inline;">More details:</h3></summary>
+
 `run_all.sh` is a single shell script that installs dependencies, runs the full
 pipeline (Phases 1 → 2 → validation), and launches the visualization server.
 
@@ -187,6 +191,9 @@ chain of cause-and-effect through the national network. The pipeline runs in thr
 cleans and validates the data, reconstructs the column structure needed for Phase 2's
 tail-chain algorithm, and exports a clean Parquet file.
 
+<details>
+<summary><h3 style="display: inline;">Breaking down the pipeline:</h3></summary>
+
 ### 3.2 Setup & Running
 
 **Prerequisites:** Python with Anaconda (pandas, numpy, matplotlib included). Only extra
@@ -265,7 +272,7 @@ import pandas as pd
 df = pd.read_parquet('./data/parquet/flights_clean.parquet')
 ```
 
----
+ </details>
 
 ## 4. Phase 2 — Propagation Model & Experiments
 
@@ -422,6 +429,9 @@ Monthly files (`network_month_XX.json`) share the same schema with `"month": 1�
 Run after the main pipeline. Reads existing outputs only — does **not** modify any
 pipeline data or JSON files. Results saved as separate CSVs.
 
+<details>
+<summary><h4 style="display: inline;">Click to see experiments:</h4></summary>
+
 #### Experiment 1 — Scalability
 
 Measures `build_network()` runtime as the dataset grows from 1 to 11 months (steps:
@@ -452,7 +462,7 @@ Jaccard ≥ 0.7 = stable metric.
 **Report use:** Satisfies the second success criterion — high-impact airports remain
 consistent across months.
 
----
+</details>
 
 ## 5. Phase 3 — D3 Visualization
 
@@ -533,7 +543,7 @@ frequency). In cascade mode, active propagation routes flash orange with a glow 
 
 ---
 
-## 6. Known Limitations
+## 6. Other Notes
 
 - **December 2025 data absent** — the BTS dataset covers January–November 2025 only.
   Label the date range accordingly in all report figures.

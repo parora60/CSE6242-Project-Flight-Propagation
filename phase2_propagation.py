@@ -14,6 +14,7 @@ Run:
 import argparse
 import json
 import os
+from time import time
 import warnings
 from pathlib import Path
 
@@ -698,6 +699,7 @@ def export_json(obj, path: str):
 # ─────────────────────────────────────────────
 
 def main(parquet_path: str, output_dir: str = "data"):
+    start = time() 
     # 1. Load
     df = load_flights(parquet_path)
 
@@ -759,6 +761,9 @@ def main(parquet_path: str, output_dir: str = "data"):
     print(f"  {output_dir}/monthly_graphs/          → per-month D3 networks")
     print(f"  {output_dir}/cascade_results.json     → cascade animation data")
     print(f"  {output_dir}/propagation_events.csv   → raw event audit log")
+    print("=" * 60)
+
+    print(f"  Total pipeline runtime   : {time() - start:.1f}s")
     print("=" * 60)
 
 

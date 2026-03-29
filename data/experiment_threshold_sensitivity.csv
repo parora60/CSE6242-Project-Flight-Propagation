@@ -1,0 +1,4 @@
+threshold_min,total_events,primary_pct,median_delay,mean_delay,dfw_risk_score
+1,1322868,43.9,14.0,28.6,35.6
+15,696975,63.3,32.0,49.8,56.2
+30,429872,65.2,51.0,70.3,77.0

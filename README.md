@@ -10,12 +10,112 @@
 
 ## Table of Contents
 
+0. [Quick Start — Run Everything at Once](#0-quick-start--run-everything-at-once)
 1. [Project Overview](#1-project-overview)
 2. [Repository Structure](#2-repository-structure)
 3. [Phase 1 — Data Pipeline](#3-phase-1--data-pipeline)
 4. [Phase 2 — Propagation Model & Experiments](#4-phase-2--propagation-model--experiments)
 5. [Phase 3 — D3 Visualization](#5-phase-3--d3-visualization)
 6. [Known Limitations](#6-known-limitations)
+
+---
+
+## 0. Quick Start — Run Everything at Once
+
+`run_all.sh` is a single shell script that installs dependencies, runs the full
+pipeline (Phases 1 → 2 → validation), and launches the visualization server.
+
+### Prerequisites
+
+- Python 3.9+ with `pip`
+- BTS CSV files placed in `data/csv/` (see §3.2 for download instructions)
+
+### Common scenarios
+
+**First time — build everything from raw CSVs:**
+
+```bash
+bash run_all.sh
+```
+
+Installs dependencies, runs the Phase 1 notebook to produce `flights_clean.parquet`,
+runs the Phase 2 pipeline to build `network_graph.json` and `cascade_results.json`,
+runs validation, then starts the server. Phase 1 is skipped automatically on
+subsequent runs if the parquet already exists.
+
+Open **http://localhost:8080** in your browser.
+
+---
+
+**Pipeline code changed, raw data unchanged** (most common during development):
+
+```bash
+bash run_all.sh --force-phase2
+```
+
+Skips the Phase 1 notebook (reuses the existing parquet), clears the previous
+Phase 2 outputs, and rebuilds the network and cascade JSON files from scratch.
+Use this whenever you update `phase2_propagation.py` and need fresh JSON outputs.
+
+---
+
+**Raw BTS CSV data changed** (new months added, source data updated):
+
+```bash
+bash run_all.sh --force-all
+```
+
+Deletes the existing parquet and re-runs Phase 1 from the raw CSVs, then runs
+Phase 2. Use this when the underlying data — not just the pipeline code — has changed.
+
+---
+
+**JSON outputs already built — just open the visualization:**
+
+```bash
+bash run_all.sh --viz-only
+```
+
+Skips all pipeline steps and immediately starts the HTTP server. Requires
+`data/network_graph.json` and `data/cascade_results.json` to already exist.
+
+---
+
+### All flags
+
+| Flag | When to use |
+|---|---|
+| _(none)_ | Auto mode — skips Phase 1 if parquet exists, always runs Phase 2 |
+| `--force-phase2` | Pipeline code changed; rebuild network/cascade from existing parquet |
+| `--force-all` | Raw CSV data changed; delete parquet and rebuild everything |
+| `--viz-only` | Data already built; skip pipeline and start server immediately |
+| `--parquet PATH` | Use a parquet file at a non-default path |
+| `--data_dir DIR` | Write/read JSON outputs to a non-default directory (default: `./data`) |
+| `--port PORT` | Start the HTTP server on a different port (default: `8080`) |
+
+### Run phases individually
+
+If you prefer to run each phase manually rather than through `run_all.sh`:
+
+```bash
+# Phase 1 — run the notebook
+pip install nbconvert
+jupyter nbconvert --to notebook --execute project_pipeline.ipynb
+
+# Phase 2 — build the network
+pip install -r requirements_phase2.txt
+python phase2_propagation.py --parquet ./data/parquet/flights_clean.parquet
+
+# Phase 2 — validate outputs and generate charts
+python phase2_validate.py
+
+# Phase 2 — scalability & sensitivity experiments (optional)
+python phase2_experiments.py --parquet ./data/parquet/flights_clean.parquet
+
+# Phase 3 — start the visualization server
+python -m http.server 8080
+# Open http://localhost:8080
+```
 
 ---
 

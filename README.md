@@ -481,6 +481,9 @@ Open **http://localhost:8080** in your browser. The `data/` folder must contain
 `network_graph.json` and `cascade_results.json`. Opening `index.html` directly as a
 `file://` URL will fail — browsers block `fetch()` on local file paths.
 
+<details>
+<summary><h3 style="display: inline;">View full interface reference →</h3></summary>
+
 ### 5.2 Interface Layout
 
 | Area             | Description                                                                            |
@@ -488,6 +491,7 @@ Open **http://localhost:8080** in your browser. The `data/` folder must contain
 | **Top bar**      | Title, dataset date range (Jan–Nov 2025), and live counters for airports/routes/events |
 | **Left sidebar** | Mode switcher, active mode controls, scrollable ranked airport list                    |
 | **Map canvas**   | Albers USA projection — zoomable, pannable, fully interactive                          |
+| **Detail panel** | Top-right overlay — opens on click, shows full metrics for the selected airport        |
 
 ### 5.3 View Modes
 
@@ -502,44 +506,91 @@ _severe_ delays.
 Best for seeing the highest-_frequency_ propagation sources.
 
 **Cascade** — Animate a delay shock spreading from a seed airport. Select a seed from the
-dropdown and press **Play Cascade**. Particles travel along routes hop-by-hop; the left
-panel updates in real time with all affected airports and their estimated delay. The
-**Edge Filter** slider sets the minimum route event count — raise it to show only the
-strongest propagation corridors.
+dropdown and press **Play Cascade**. The selected seed airport is immediately highlighted
+with a pulsing red ring on the map. Particles travel along routes hop-by-hop from their
+actual propagating source airports (not just the seed); the left panel updates in real time
+with affected airports and estimated delay.
 
 ### 5.4 Interactions
 
-| Action                               | Result                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------------ |
-| **Hover** airport node               | Tooltip: risk score, event counts, PageRank, betweenness, coordinates    |
-| **Click** airport node               | Opens detail panel (top-right) with full metrics + delay cause breakdown |
-| **Click** left panel row             | Flies map to that airport and opens its detail panel                     |
-| **Scroll** on map                    | Zoom in / out                                                            |
-| **Click and drag**                   | Pan                                                                      |
-| **+** / **−** / **⊡** (bottom-right) | Zoom in, zoom out, reset view                                            |
-| **? How to use** (bottom-left)       | Opens help overlay                                                       |
-| **Click map background**             | Dismisses detail panel, clears selection highlight                       |
+| Action                               | Result                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| **Hover** airport node               | Tooltip: risk score, event counts, PageRank, betweenness, coordinates                    |
+| **Click** airport node               | Opens detail panel with full metrics + delay cause breakdown + outbound route highlight   |
+| **Click** left panel row             | Flies map to that airport and opens its detail panel                                      |
+| **Scroll** on map                    | Zoom in / out                                                                             |
+| **Click and drag**                   | Pan                                                                                       |
+| **+** / **−** / **⊡** (bottom-right) | Zoom in, zoom out, reset view                                                             |
+| **? How to use** (bottom-left)       | Opens help overlay                                                                        |
+| **Click map background**             | Dismisses detail panel, clears selection highlight                                        |
+| **Click airport during cascade**     | Inspects that airport's metrics without clearing cascade results or changing the seed     |
 
-The selected airport is highlighted with a white ring and enlarged bold label for easy
-identification on a dense map.
+### 5.5 Outbound Route Highlight
 
-### 5.5 Detail Panel
+Clicking any airport highlights its top outbound delay routes as cyan arcs. Arc intensity
+(color brightness and opacity) scales with route event count — the strongest propagation
+corridors are vivid cyan, lighter routes fade toward pale blue. A cyan ring marks each
+destination airport.
 
-Available across all three tabs (Risk Score, Volume, and Cascade). Shows:
+A **Routes slider** appears at the bottom of the detail panel when an airport is selected.
+Drag it to control how many outbound routes are shown (1 to the airport's total). The map
+updates in real time. Airports with only one outbound route show a quiet text note instead
+of a slider.
 
-- Risk score and tier (High / Medium / Low)
+In **Cascade mode** after a simulation has run, clicking any airport shows its outbound
+connections softly overlaid on the cascade results — the cascade node colors remain visible
+in the background so you can cross-reference which affected airports connect to the one
+you're exploring.
+
+### 5.6 Detail Panel
+
+Available across all three tabs. Shows:
+
+- Risk score, risk tier (High / Medium / Low), and expected delay
 - Out-events and in-events
 - Net export (positive = delay exporter, negative = absorber)
 - PageRank and betweenness centrality
 - Lat/lon coordinates
 - **Delay cause breakdown** — proportional bar chart (Late Aircraft, NAS/ATC, Carrier,
   Weather), aggregated from all outbound edges for that airport
+- **ⓘ icons** on every metric — hover to see a plain-English definition of what that
+  metric means
 
-### 5.6 Edge Rendering
+### 5.7 Cascade Simulation Details
+
+Select a seed airport from the dropdown — a pulsing red ring marks the seed location on
+the map immediately so you can orient yourself before pressing Play. Changing the seed
+resets all cascade visuals and updates the preview ring.
+
+During playback, each hop's particles radiate from their actual source airports (the
+airports in the previous wave that have a real route to each destination), not always from
+the seed. This means the animation correctly shows delay spreading outward from multiple
+hubs simultaneously at later hops.
+
+Controls:
+
+| Control        | Effect                                                   |
+| -------------- | -------------------------------------------------------- |
+| **Play Cascade** | Starts or stops the simulation                         |
+| **Stop**       | Halts and resets node colors                             |
+| **Replay**     | Resets and restarts from the same seed                   |
+| **Edge Filter** slider | Sets minimum route event count for cascade eligibility — higher = fewer, stronger routes only |
+
+The hop progress dots below the Play button show total hops; filled dots = completed,
+white dot = current hop.
+
+### 5.8 Edge Rendering
 
 Edges are curved paths between airports. Thickness encodes `event_count` (thicker = more
-frequent propagation). Color interpolates from amber/blue (low frequency) to red (high
-frequency). In cascade mode, active propagation routes flash orange with a glow effect.
+frequent propagation). Color interpolates from blue (low frequency) to orange/red (high
+frequency). In cascade mode, active propagation routes animate with orange cascade-edge
+overlays.
+
+When an airport is selected outside cascade mode, the base edge layer dims to 6% opacity
+so the highlighted cyan outbound routes stand out clearly. In cascade mode with results
+active, the base layer stays visible to preserve the cascade color context.
+
+</details>
 
 ---
 

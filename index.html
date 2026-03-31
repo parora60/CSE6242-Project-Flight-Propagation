@@ -550,7 +550,7 @@
         position: absolute;
         top: 12px;
         right: 12px;
-        width: 260px;
+        width: 300px;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -598,25 +598,25 @@
       }
       .dp-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5px;
         margin-bottom: 10px;
       }
       .dp-metric {
         background: var(--bg);
         border-radius: 6px;
-        padding: 7px 8px;
+        padding: 6px 7px;
       }
       .dp-metric .dml {
-        font-size: 8px;
+        font-size: 7.5px;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.08em;
         color: var(--text-dimmer);
         margin-bottom: 2px;
       }
       .dp-metric .dmv {
         font-family: "DM Mono", monospace;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
       }
       .dp-section-label {
@@ -678,7 +678,38 @@
         padding: 28px 32px;
         max-width: 480px;
         width: 90%;
+        max-height: 82vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
       }
+      .help-box::-webkit-scrollbar {
+        width: 4px;
+      }
+      .help-box::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .help-box::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+      .help-close-btn {
+        margin-top: 20px;
+        flex-shrink: 0;
+        width: 100%;
+        padding: 9px;
+        background: var(--accent);
+        border: none;
+        border-radius: 7px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        position: sticky;
+        bottom: 0;
+      }
+
       .help-box h2 {
         font-size: 18px;
         margin-bottom: 4px;
@@ -710,21 +741,116 @@
         line-height: 1.8;
         padding-left: 16px;
       }
-      .help-close-btn {
-        margin-top: 20px;
-        width: 100%;
-        padding: 9px;
-        background: var(--accent);
-        border: none;
-        border-radius: 7px;
-        color: #fff;
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
+
+      /* ── OUTBOUND HIGHLIGHT ── */
+      .outbound-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        font-weight: 700;
+        fill: #ffffff;
+        paint-order: stroke;
+        stroke: rgba(10, 13, 20, 0.9);
+        stroke-width: 3.5px;
+        stroke-linejoin: round;
+        text-anchor: middle;
+        pointer-events: none;
+        filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.9));
+      }
+      .outbound-ring {
+        fill: none;
+        pointer-events: none;
       }
 
-      /* SVG styles */
+      @keyframes seedPulse {
+        0% {
+          stroke-opacity: 0.9;
+          r: 0;
+        }
+        50% {
+          stroke-opacity: 0.5;
+        }
+        100% {
+          stroke-opacity: 0.9;
+        }
+      }
+      .seed-preview-ring {
+        animation: seedPulse 1.6s ease-in-out infinite;
+      }
+      .seed-preview-label {
+        pointer-events: none;
+      }
+
+      /* ── ROUTE COUNT SLIDER ── */
+      #dp-route-single-note {
+        display: none;
+        margin: 10px 0 4px;
+        padding: 6px 10px;
+        font-size: 10px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text-dimmer);
+        background: rgba(56, 189, 248, 0.05);
+        border: 1px solid rgba(56, 189, 248, 0.12);
+        border-radius: 6px;
+        text-align: center;
+        letter-spacing: 0.03em;
+      }
+      #dp-route-slider-wrap {
+        display: none; /* shown via JS when outbound active */
+        margin: 10px 0 4px;
+        padding: 8px 12px;
+        background: rgba(56, 189, 248, 0.06);
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        border-radius: 7px;
+      }
+      .dp-route-slider-label {
+        display: flex;
+        gap: 4px;
+        align-items: baseline;
+        font-size: 10px;
+        color: var(--text-dim);
+        margin-bottom: 7px;
+        font-family: "JetBrains Mono", monospace;
+      }
+      #dp-route-count-val {
+        color: #38bdf8;
+        font-weight: 700;
+        font-size: 13px;
+        line-height: 1;
+        margin: 0 1px;
+      }
+      #dp-route-slider {
+        width: 100%;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 3px;
+        border-radius: 2px;
+        background: linear-gradient(
+          to right,
+          #38bdf8 var(--pct, 50%),
+          #334155 var(--pct, 50%)
+        );
+        outline: none;
+        cursor: pointer;
+      }
+      #dp-route-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #38bdf8;
+        border: 2px solid #0f172a;
+        box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+        cursor: pointer;
+      }
+      #dp-route-slider::-moz-range-thumb {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #38bdf8;
+        border: 2px solid #0f172a;
+        box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+        cursor: pointer;
+      }
       .us-state {
         fill: #111827;
         stroke: #1e293b;
@@ -827,6 +953,82 @@
       .airport-label {
         font-family: "JetBrains Mono", monospace;
       }
+
+      /* ── TOAST ── */
+      #toast {
+        position: fixed;
+        bottom: 60px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        font-size: 11px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.25s,
+          transform 0.25s;
+        z-index: 9999;
+        white-space: nowrap;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* ── METRIC INFO TOOLTIP ── */
+      .minfo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: rgba(56, 189, 248, 0.15);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        color: var(--accent);
+        font-size: 8px;
+        font-weight: 700;
+        cursor: help;
+        margin-left: 3px;
+        vertical-align: middle;
+        flex-shrink: 0;
+        position: relative;
+        font-style: normal;
+        line-height: 1;
+      }
+      /* make dp-metric label row flex so ⓘ sits inline */
+      .dp-metric .dml {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      /* ── MINFO POPOVER (JS-positioned, never clips) ── */
+      #minfo-popover {
+        position: fixed;
+        background: #0f172a;
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        font-size: 10.5px;
+        font-family: "Inter", sans-serif;
+        line-height: 1.45;
+        padding: 7px 10px;
+        border-radius: 7px;
+        max-width: 200px;
+        width: max-content;
+        z-index: 99999;
+        pointer-events: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        display: none;
+      }
+      #minfo-popover.visible {
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -886,8 +1088,17 @@
           <div class="ctrl-label">Seed Airport</div>
           <select id="seed-select"></select>
           <div class="ctrl-label">
-            Edge Filter — min events on route:
-            <span id="edge-filter-val">50</span>+
+            Only show routes where delays happened at least
+            <span id="edge-filter-val">50</span>+ times
+            <span
+              style="
+                display: block;
+                font-size: 9px;
+                color: var(--text-dimmer);
+                margin-top: 2px;
+              "
+              >(higher = fewer, stronger routes only)</span
+            >
           </div>
           <input
             type="range"
@@ -962,6 +1173,12 @@
       </div>
     </div>
 
+    <!-- MINFO POPOVER -->
+    <div id="minfo-popover"></div>
+
+    <!-- TOAST -->
+    <div id="toast"></div>
+
     <!-- TOOLTIP -->
     <div id="tooltip"></div>
 
@@ -976,6 +1193,23 @@
         <div class="dp-grid" id="dp-grid"></div>
         <div class="dp-section-label">Delay Cause Breakdown</div>
         <div id="dp-causes"></div>
+        <!-- Route count slider — only shown when outbound highlight is active and >1 route -->
+        <div id="dp-route-slider-wrap">
+          <div class="dp-route-slider-label">
+            <span>Showing top</span>
+            <span id="dp-route-count-val">15</span>
+            <span>routes</span>
+          </div>
+          <input
+            type="range"
+            id="dp-route-slider"
+            min="1"
+            max="30"
+            value="15"
+            step="1"
+          />
+        </div>
+        <div id="dp-route-single-note">1 outbound route</div>
       </div>
     </div>
 
@@ -1038,6 +1272,7 @@
             holds and minor ATC micro-delays.
           </p>
         </div>
+
         <button
           class="help-close-btn"
           id="help-close-btn"
@@ -1051,6 +1286,60 @@
     </div>
 
     <script>
+      // ═══════════════════════════════════════════
+      //  TOAST
+      // ═══════════════════════════════════════════
+      let toastTimer = null;
+      function showToast(msg, duration = 3500) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.classList.add("show");
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), duration);
+      }
+
+      // ═══════════════════════════════════════════
+      //  MINFO POPOVER (JS-positioned, never clips)
+      // ═══════════════════════════════════════════
+      const minfoPopover = document.getElementById("minfo-popover");
+      document.body.addEventListener("mouseover", (e) => {
+        const el = e.target.closest(".minfo");
+        if (!el) return;
+        const tip = el.getAttribute("data-tip");
+        if (!tip) return;
+        minfoPopover.textContent = tip;
+        minfoPopover.classList.add("visible");
+        positionPopover(el);
+      });
+      document.body.addEventListener("mouseout", (e) => {
+        if (!e.target.closest(".minfo")) return;
+        minfoPopover.classList.remove("visible");
+      });
+      document.body.addEventListener("mousemove", (e) => {
+        if (!minfoPopover.classList.contains("visible")) return;
+        const el = e.target.closest(".minfo");
+        if (el) positionPopover(el);
+      });
+      function positionPopover(el) {
+        const r = el.getBoundingClientRect();
+        const pw = minfoPopover.offsetWidth || 200;
+        const ph = minfoPopover.offsetHeight || 40;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        // Try above first
+        let top = r.top - ph - 8;
+        let left = r.left + r.width / 2 - pw / 2;
+        // Flip below if clipped at top
+        if (top < 8) top = r.bottom + 8;
+        // Clamp horizontally
+        if (left < 8) left = 8;
+        if (left + pw > vw - 8) left = vw - pw - 8;
+        // Clamp vertically
+        if (top + ph > vh - 8) top = vh - ph - 8;
+        minfoPopover.style.left = left + "px";
+        minfoPopover.style.top = top + "px";
+      }
+
       // ═══════════════════════════════════════════
       //  LOAD REAL DATA FROM JSON FILES
       // ═══════════════════════════════════════════
@@ -1135,6 +1424,7 @@
       let cascadeStep = 0;
       let cascadeData = null;
       let affectedState = {};
+      let cumulativeDelay = 0;
 
       // ═══════════════════════════════════════════
       //  COLOR HELPERS
@@ -1356,6 +1646,11 @@
         populateSeedSelect();
         buildHopDots();
         updateLegend();
+        // Show seed preview ring once everything is rendered (cascade mode only)
+        if (currentMode === "cascade") {
+          const initialSeed = document.getElementById("seed-select").value;
+          if (initialSeed) showSeedPreview(initialSeed);
+        }
       }
 
       // Project airport coordinates
@@ -1439,24 +1734,7 @@
           .on("mouseleave", hideTooltip)
           .on("click", handleNodeClick);
 
-        // Glow rings for high-risk
-        gNodes.selectAll(".glow-ring").remove();
-        if (currentMode !== "cascade") {
-          AIRPORTS_DATA.filter(
-            (d) => d.prop_risk_score >= 55 && airportPos[d.id],
-          ).forEach((d) => {
-            gNodes
-              .insert("circle", ".airport-node")
-              .attr("class", "glow-ring")
-              .attr("cx", airportPos[d.id].x)
-              .attr("cy", airportPos[d.id].y)
-              .attr("r", nodeRadius(d) + 4)
-              .attr("fill", "none")
-              .attr("stroke", riskColor(d.prop_risk_score))
-              .attr("stroke-width", 1)
-              .attr("stroke-opacity", 0.3);
-          });
-        }
+        // (glow rings removed — risk level is communicated via node color)
       }
 
       function updateNodes() {
@@ -1480,8 +1758,9 @@
           )
           .join("text")
           .attr("class", "airport-label")
+          .attr("data-airport-id", (d) => d.id)
           .attr("x", (d) => airportPos[d.id].x)
-          .attr("y", (d) => airportPos[d.id].y - nodeRadius(d) - 4) // above the node, not below
+          .attr("y", (d) => airportPos[d.id].y - nodeRadius(d) - 4)
           .style("font-size", "8px")
           .style("font-weight", "600")
           .style("fill", "rgba(226,232,247,0.9)")
@@ -1550,17 +1829,204 @@
         event.stopPropagation();
         selectedNode = d.id;
 
-        if (currentMode === "cascade") {
-          // In cascade mode, also set as seed
-          document.getElementById("seed-select").value = d.id;
-        }
+        const currentSeed = document.getElementById("seed-select").value;
+        const hasCascadeResults = Object.keys(affectedState).length > 0;
 
         showDetailPanel(d);
-        highlightSelectedNode(d.id);
+
+        if (currentMode === "cascade") {
+          if (d.id === currentSeed && !hasCascadeResults) {
+            // Clicked the seed airport before running — the pulsing ring already
+            // marks it clearly. Just show the panel, no extra ring or outbound.
+            // Don't draw a competing selected-node ring on top of the seed ring.
+            return;
+          }
+          // Clicked a different airport (or cascade has run) — clear seed preview,
+          // show normal selection ring, and show outbound softly so cascade colors stay.
+          clearSeedPreview();
+          highlightSelectedNode(d.id);
+          if (hasCascadeResults) {
+            highlightOutboundSoft(d.id);
+          } else {
+            highlightOutbound(d.id);
+          }
+        } else {
+          highlightSelectedNode(d.id);
+          highlightOutbound(d.id);
+        }
+      }
+
+      // ─ OUTBOUND HIGHLIGHT ─
+      const gOutbound = gMain.append("g").attr("id", "g-outbound");
+      // Cyan intensity scale for outbound edges
+      function outboundColor(t) {
+        // Blend from pale (#bae6fd) → vivid cyan (#38bdf8) as t goes 0→1
+        const r = Math.round(186 + (56 - 186) * t);
+        const g = Math.round(230 + (189 - 230) * t);
+        const b = Math.round(253 + (248 - 253) * t);
+        return `rgb(${r},${g},${b})`;
+      }
+      let MAX_OUTBOUND_ROUTES = 15;
+
+      function clearOutbound() {
+        gOutbound.selectAll("*").remove();
+        gLabels.selectAll(".outbound-label").remove();
+        // Only restore labels hidden by the outbound highlight — not ones
+        // hidden for the selected node or seed preview (those have their own flags)
+        gLabels
+          .selectAll(".airport-label")
+          .filter(function () {
+            const el = d3.select(this);
+            return (
+              el.attr("visibility") === "hidden" &&
+              !el.attr("data-selected-hidden") &&
+              !el.attr("data-seed-hidden")
+            );
+          })
+          .attr("visibility", null);
+        // Un-dim base edges
+        gEdges.selectAll(".edge-path").attr("stroke-opacity", null);
+        // Hide route slider and single-route note
+        const sliderWrap = document.getElementById("dp-route-slider-wrap");
+        if (sliderWrap) sliderWrap.style.display = "none";
+        const singleNote = document.getElementById("dp-route-single-note");
+        if (singleNote) singleNote.style.display = "none";
+      }
+
+      // Soft variant: shows outbound routes without dimming the base edge layer.
+      // Used when cascade results are visible so node colors stay readable.
+      function highlightOutboundSoft(id) {
+        _doHighlightOutbound(id, false);
+      }
+
+      function highlightOutbound(id) {
+        _doHighlightOutbound(id, true);
+      }
+
+      function _doHighlightOutbound(id, dimEdges) {
+        clearOutbound();
+        if (!id) return;
+
+        // NOTE: intentionally ignore the edge-filter threshold here — that filter
+        // controls the base network drawing. For outbound highlights we always show
+        // the airport's actual connections regardless of event count, so small
+        // regional airports (ADK etc.) still display their routes.
+
+        // Get outbound edges, cap at top MAX_OUTBOUND_ROUTES by event count
+        const outEdges = EDGES_DATA.filter(
+          (e) => e.source === id && airportPos[e.target],
+        )
+          .sort((a, b) => b.event_count - a.event_count)
+          .slice(0, MAX_OUTBOUND_ROUTES);
+
+        if (!outEdges.length) return;
+
+        // Dim base edge layer so highlights pop (skipped in soft/cascade mode)
+        if (dimEdges) {
+          gEdges.selectAll(".edge-path").attr("stroke-opacity", 0.06);
+        }
+
+        const maxEc = Math.max(1, ...outEdges.map((e) => e.event_count));
+        const srcPos = airportPos[id];
+        const destIds = new Set(outEdges.map((e) => e.target));
+
+        // Hide permanent labels for destinations (replaced with bright versions)
+        destIds.forEach((destId) => {
+          gLabels
+            .selectAll(`.airport-label[data-airport-id="${destId}"]`)
+            .attr("visibility", "hidden");
+        });
+
+        outEdges.forEach((e) => {
+          const tgt = airportPos[e.target];
+          if (!tgt || !srcPos) return;
+
+          const mx = (srcPos.x + tgt.x) / 2;
+          const my = (srcPos.y + tgt.y) / 2 - 20;
+          const t = e.event_count / maxEc;
+          const strokeW = 1.5 + t * 3.5;
+
+          // Cyan outbound edge — intensity scales with event count
+          gOutbound
+            .append("path")
+            .attr(
+              "d",
+              `M${srcPos.x},${srcPos.y} Q${mx},${my} ${tgt.x},${tgt.y}`,
+            )
+            .attr("fill", "none")
+            .attr("stroke", outboundColor(t))
+            .attr("stroke-width", strokeW)
+            .attr("stroke-opacity", 0.55 + t * 0.45)
+            .attr("stroke-linecap", "round")
+            .attr("pointer-events", "none");
+
+          // Ring on destination — vivid cyan
+          const destData = AIRPORTS_DATA.find((a) => a.id === e.target);
+          const r = destData ? nodeRadius(destData) : 5;
+
+          gOutbound
+            .append("circle")
+            .attr("cx", tgt.x)
+            .attr("cy", tgt.y)
+            .attr("r", r + 4)
+            .attr("stroke", "#38bdf8")
+            .attr("stroke-width", 1.5)
+            .attr("stroke-opacity", 0.8)
+            .attr("fill", "none")
+            .attr("pointer-events", "none");
+
+          // Bright label for destination
+          gLabels
+            .append("text")
+            .attr("class", "outbound-label")
+            .attr("x", tgt.x)
+            .attr("y", tgt.y - r - 6)
+            .attr("text-anchor", "middle")
+            .attr("pointer-events", "none")
+            .text(e.target);
+        });
+
+        // Show route slider and sync it — only when >1 route available
+        const sliderWrap = document.getElementById("dp-route-slider-wrap");
+        const slider = document.getElementById("dp-route-slider");
+        const valLabel = document.getElementById("dp-route-count-val");
+        const singleNote = document.getElementById("dp-route-single-note");
+        if (sliderWrap) {
+          const totalAvail = EDGES_DATA.filter(
+            (e) => e.source === id && airportPos[e.target],
+          ).length;
+
+          if (totalAvail <= 1) {
+            // Only 1 (or 0) routes — no slider needed, just a quiet label
+            sliderWrap.style.display = "none";
+            if (singleNote) singleNote.style.display = "block";
+          } else {
+            if (singleNote) singleNote.style.display = "none";
+            slider.max = totalAvail;
+            slider.value = Math.min(MAX_OUTBOUND_ROUTES, totalAvail);
+            valLabel.textContent = outEdges.length;
+            // Update track fill gradient
+            const pct =
+              totalAvail > 1
+                ? ((slider.value - 1) / (slider.max - 1)) * 100
+                : 100;
+            slider.style.setProperty("--pct", pct + "%");
+            sliderWrap.style.display = "block";
+          }
+        }
       }
 
       function highlightSelectedNode(id) {
-        // Remove previous highlight ring
+        // Restore any previously hidden selected-node permanent label
+        gLabels
+          .selectAll(".airport-label")
+          .filter(function () {
+            return d3.select(this).attr("data-selected-hidden") === "true";
+          })
+          .attr("visibility", null)
+          .attr("data-selected-hidden", null);
+
+        // Remove previous highlight ring and label
         gNodes.selectAll(".selected-ring").remove();
         if (!id || !airportPos[id]) return;
         const pos = airportPos[id];
@@ -1579,6 +2045,11 @@
           .attr("stroke-width", 2.5)
           .attr("stroke-opacity", 0.9)
           .attr("pointer-events", "none");
+        // Hide the permanent label for this airport so the selected-label doesn't double up
+        gLabels
+          .selectAll(`.airport-label[data-airport-id="${id}"]`)
+          .attr("visibility", "hidden")
+          .attr("data-selected-hidden", "true");
         // Label override — draw a larger label for selected airport
         gLabels.selectAll(".selected-label").remove();
         gLabels
@@ -1621,27 +2092,48 @@
         const total = lateAC + weather + nas + carrier;
 
         document.getElementById("dp-grid").innerHTML = `
-        <div class="dp-metric"><div class="dml">Risk Score</div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(1)}</div></div>
+        <div class="dp-metric"><div class="dml">Risk Score<i class="minfo" data-tip="Avg minutes of delay this airport exports per propagation event">i</i></div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(1)}</div></div>
         <div class="dp-metric"><div class="dml">Risk Tier</div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${riskLabel(d.prop_risk_score)}</div></div>
-        <div class="dp-metric"><div class="dml">Out Events</div><div class="dmv">${d.out_events.toLocaleString()}</div></div>
-        <div class="dp-metric"><div class="dml">In Events</div><div class="dmv">${d.in_events.toLocaleString()}</div></div>
-        <div class="dp-metric"><div class="dml">Net Export</div><div class="dmv">${d.net_export >= 0 ? "+" : ""}${d.net_export.toLocaleString()}</div></div>
-        <div class="dp-metric"><div class="dml">PageRank</div><div class="dmv">${d.pagerank.toFixed(4)}</div></div>
-        <div class="dp-metric"><div class="dml">Betweenness</div><div class="dmv">${d.betweenness.toFixed(4)}</div></div>
-        <div class="dp-metric"><div class="dml">Coordinates</div><div class="dmv" style="font-size:10px">${d.lat.toFixed(2)}°, ${d.lon.toFixed(2)}°</div></div>
+        <div class="dp-metric"><div class="dml">Exp. Delay<i class="minfo" data-tip="Expected delay a passenger may experience when a propagation event originates here">i</i></div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(0)} min</div></div>
+        <div class="dp-metric"><div class="dml">Out Events<i class="minfo" data-tip="Times a delay left this airport and carried forward to the next flight on that aircraft">i</i></div><div class="dmv">${d.out_events.toLocaleString()}</div></div>
+        <div class="dp-metric"><div class="dml">In Events<i class="minfo" data-tip="Propagation events that arrived at this airport from another airport">i</i></div><div class="dmv">${d.in_events.toLocaleString()}</div></div>
+        <div class="dp-metric"><div class="dml">Net Export<i class="minfo" data-tip="Out Events minus In Events. Positive = this airport sends more delays than it receives">i</i></div><div class="dmv">${d.net_export >= 0 ? "+" : ""}${d.net_export.toLocaleString()}</div></div>
+        <div class="dp-metric"><div class="dml">PageRank<i class="minfo" data-tip="Systemic importance — high if other major delay hubs route through this airport">i</i></div><div class="dmv">${d.pagerank.toFixed(4)}</div></div>
+        <div class="dp-metric"><div class="dml">Betweenness<i class="minfo" data-tip="How often this airport sits on the shortest path between two other airports — a structural chokepoint measure">i</i></div><div class="dmv">${d.betweenness.toFixed(4)}</div></div>
+        <div class="dp-metric"><div class="dml">Lat / Lon</div><div class="dmv" style="font-size:9px">${d.lat != null ? d.lat.toFixed(2) + "°, " + d.lon.toFixed(2) + "°" : "N/A"}</div></div>
     `;
 
         const causes = [
-          { label: "Late Aircraft", val: lateAC, color: "#f59e0b" },
-          { label: "NAS/ATC", val: nas, color: "#3b82f6" },
-          { label: "Carrier", val: carrier, color: "#8b5cf6" },
-          { label: "Weather", val: weather, color: "#06b6d4" },
+          {
+            label: "Late Aircraft",
+            val: lateAC,
+            color: "#f59e0b",
+            tip: "The inbound plane arrived late from a prior flight, causing this one to depart late",
+          },
+          {
+            label: "NAS/ATC",
+            val: nas,
+            color: "#3b82f6",
+            tip: "National Airspace System: air traffic control holds, ground stops, congestion",
+          },
+          {
+            label: "Carrier",
+            val: carrier,
+            color: "#8b5cf6",
+            tip: "Airline-caused: maintenance issues, crew scheduling, aircraft swaps",
+          },
+          {
+            label: "Weather",
+            val: weather,
+            color: "#06b6d4",
+            tip: "Delays directly attributed to meteorological conditions",
+          },
         ];
         document.getElementById("dp-causes").innerHTML = causes
           .map((c) => {
             const pct = total ? Math.round((c.val / total) * 100) : 0;
             return `<div class="cause-row">
-        <div class="cause-label">${c.label}</div>
+        <div class="cause-label">${c.label}<i class="minfo" data-tip="${c.tip}" style="margin-left:3px">i</i></div>
         <div class="cause-bar-wrap"><div class="cause-bar" style="width:${pct}%;background:${c.color}"></div></div>
         <div class="cause-pct">${pct}%</div>
         </div>`;
@@ -1655,12 +2147,22 @@
         document.getElementById("detail-panel").classList.remove("visible");
         gNodes.selectAll(".selected-ring").remove();
         gLabels.selectAll(".selected-label").remove();
+        gLabels
+          .selectAll(".airport-label[data-selected-hidden]")
+          .attr("visibility", null)
+          .attr("data-selected-hidden", null);
+        clearOutbound();
         selectedNode = null;
       });
       svg.on("click", () => {
         document.getElementById("detail-panel").classList.remove("visible");
         gNodes.selectAll(".selected-ring").remove();
         gLabels.selectAll(".selected-label").remove();
+        gLabels
+          .selectAll(".airport-label[data-selected-hidden]")
+          .attr("visibility", null)
+          .attr("data-selected-hidden", null);
+        clearOutbound();
         selectedNode = null;
       });
 
@@ -1689,8 +2191,19 @@
             "column";
           document.getElementById("detail-panel").classList.remove("visible");
 
+          // Always clear any selected-node ring/label when switching modes
+          gNodes.selectAll(".selected-ring").remove();
+          gLabels.selectAll(".selected-label").remove();
+          gLabels
+            .selectAll(".airport-label[data-selected-hidden]")
+            .attr("visibility", null)
+            .attr("data-selected-hidden", null);
+          clearOutbound();
+          selectedNode = null;
+
           if (!isCascade) {
             stopCascade();
+            clearSeedPreview();
             affectedState = {};
             populateTop10();
             document.getElementById("top10-label").textContent =
@@ -1703,6 +2216,13 @@
           drawEdges();
           drawNodes();
           updateNodes();
+
+          if (isCascade) {
+            // Show seed preview AFTER drawNodes so the permanent label
+            // is freshly rendered before we hide it — prevents double-label bug.
+            const seed = document.getElementById("seed-select").value;
+            if (seed) showSeedPreview(seed);
+          }
         });
       });
 
@@ -1762,7 +2282,13 @@
 
       window.flyToAirport = function (id) {
         const pos = airportPos[id];
-        if (!pos) return;
+        if (!pos) {
+          // Airport exists in data but has no map position (e.g. Guam, territories)
+          showToast(
+            `${id} is outside the Albers USA map projection (Pacific/Caribbean territories are not shown)`,
+          );
+          return;
+        }
         const { w, h } = getMapDims();
         const scale = 4;
         const tx = w / 2 - scale * pos.x;
@@ -1776,6 +2302,7 @@
           selectedNode = id;
           showDetailPanel(d);
           highlightSelectedNode(id);
+          highlightOutbound(id);
           if (currentMode === "cascade") {
             document.getElementById("seed-select").value = id;
           }
@@ -1800,6 +2327,23 @@
         document.getElementById("hop-dots").innerHTML = "";
       }
 
+      // When the user picks a new seed airport: clear any selected node + reset cascade visuals
+      document.getElementById("seed-select").addEventListener("change", () => {
+        if (selectedNode) {
+          document.getElementById("detail-panel").classList.remove("visible");
+          gNodes.selectAll(".selected-ring").remove();
+          gLabels.selectAll(".selected-label").remove();
+          gLabels
+            .selectAll(".airport-label[data-selected-hidden]")
+            .attr("visibility", null)
+            .attr("data-selected-hidden", null);
+          clearOutbound();
+          selectedNode = null;
+        }
+        stopCascade();
+        resetCascadeVisuals();
+      });
+
       function stopCascade() {
         if (cascadeTimer) clearTimeout(cascadeTimer);
         cascadeRunning = false;
@@ -1817,6 +2361,72 @@
         document.getElementById("cascade-status").textContent = "";
         document.getElementById("affected-list").innerHTML = "";
         document.getElementById("hop-dots").innerHTML = "";
+        // Re-show the seed preview ring after reset
+        const seed = document.getElementById("seed-select").value;
+        if (seed) showSeedPreview(seed);
+      }
+
+      // Highlight the seed airport on the map before the simulation runs —
+      // a subtle pulsing ring so users can see where the cascade will start.
+      function showSeedPreview(id) {
+        gNodes.selectAll(".seed-preview-ring").remove();
+        gLabels.selectAll(".seed-preview-label").remove();
+        // Restore any previously hidden seed permanent label before switching
+        gLabels
+          .selectAll(".airport-label[data-seed-hidden]")
+          .attr("visibility", null)
+          .attr("data-seed-hidden", null);
+
+        const pos = airportPos[id];
+        if (!pos) return;
+        const d = AIRPORTS_DATA.find((a) => a.id === id);
+        const r = d ? nodeRadius(d) : 5;
+
+        // Hide the permanent label so the preview label doesn't double up
+        gLabels
+          .selectAll(`.airport-label[data-airport-id="${id}"]`)
+          .attr("visibility", "hidden")
+          .attr("data-seed-hidden", "true");
+
+        // Pulsing ring (CSS animation)
+        gNodes
+          .append("circle")
+          .attr("class", "seed-preview-ring")
+          .attr("cx", pos.x)
+          .attr("cy", pos.y)
+          .attr("r", r + 8)
+          .attr("fill", "none")
+          .attr("stroke", "#f43f5e")
+          .attr("stroke-width", 2)
+          .attr("stroke-opacity", 0.85)
+          .attr("pointer-events", "none");
+
+        // Red preview label
+        gLabels
+          .append("text")
+          .attr("class", "seed-preview-label")
+          .attr("x", pos.x)
+          .attr("y", pos.y - r - 14)
+          .style("font-size", "11px")
+          .style("font-weight", "700")
+          .style("fill", "#f43f5e")
+          .style("paint-order", "stroke")
+          .style("stroke", "rgba(10,13,20,0.95)")
+          .style("stroke-width", "3.5px")
+          .style("stroke-linejoin", "round")
+          .attr("text-anchor", "middle")
+          .attr("pointer-events", "none")
+          .text(id);
+      }
+
+      function clearSeedPreview() {
+        gNodes.selectAll(".seed-preview-ring").remove();
+        gLabels.selectAll(".seed-preview-label").remove();
+        // Restore the permanent label that was hidden for the seed airport
+        gLabels
+          .selectAll(".airport-label[data-seed-hidden]")
+          .attr("visibility", null)
+          .attr("data-seed-hidden", null);
       }
 
       document.getElementById("play-btn").addEventListener("click", () => {
@@ -1842,9 +2452,26 @@
         cascadeData = CASCADE_DATA[seed];
         if (!cascadeData) return;
 
+        // Clear the "ready to play" seed preview — cascade visuals take over
+        clearSeedPreview();
+
+        // Deselect any currently selected airport cleanly before running
+        if (selectedNode) {
+          document.getElementById("detail-panel").classList.remove("visible");
+          gNodes.selectAll(".selected-ring").remove();
+          gLabels.selectAll(".selected-label").remove();
+          gLabels
+            .selectAll(".airport-label[data-selected-hidden]")
+            .attr("visibility", null)
+            .attr("data-selected-hidden", null);
+          clearOutbound();
+          selectedNode = null;
+        }
+
         cascadeRunning = true;
         cascadeStep = 0;
         affectedState = {};
+        cumulativeDelay = 0;
         document.getElementById("play-btn").textContent = "■ Stop";
         document.getElementById("play-btn").classList.add("playing");
 
@@ -1888,11 +2515,13 @@
           if (i === cascadeStep) d.classList.add("active"); // current hop = bright white
         });
 
-        // Animate particles from seed/prev airports to newly affected
-        const sources =
-          cascadeStep === 0
-            ? [seed]
-            : cascadeData[cascadeStep - 1].newly_affected.concat([seed]);
+        // Animate particles from the correct source for each newly-affected target.
+        // Build a fast edge-lookup set: "SRC|TGT" → true, from EDGES_DATA.
+        // Then for each target, find which airport in the current wave actually
+        // has an edge to it — that's the propagation source for the animation.
+        const edgeSet = new Set(
+          EDGES_DATA.map((e) => `${e.source}|${e.target}`),
+        );
 
         step.newly_affected.forEach((target) => {
           const delay = step.wave[target] || 0;
@@ -1902,15 +2531,30 @@
             color: delay >= 5 ? "#f43f5e" : delay >= 2 ? "#fb923c" : "#f59e0b",
           };
 
-          // Pick a source for animation
+          // Find the actual source: prefer an airport from the previous wave that
+          // has a known edge to target; fall back to seed if none found.
+          const prevWaveAirports =
+            cascadeStep === 0
+              ? [seed]
+              : Object.keys(affectedState).filter(
+                  (k) => affectedState[k].hop === cascadeStep && airportPos[k],
+                );
           const src =
-            sources.find((s) => airportPos[s] && airportPos[target]) || seed;
+            prevWaveAirports.find(
+              (s) => airportPos[s] && edgeSet.has(`${s}|${target}`),
+            ) ||
+            prevWaveAirports.find((s) => airportPos[s]) ||
+            seed;
           animateParticle(src, target, hopNum);
         });
 
-        // Update status
+        // Update status with cumulative delay + avg per airport
+        cumulativeDelay += step.total_delay;
+        const affectedCount = step.total_airports;
+        const avgDelay =
+          affectedCount > 0 ? cumulativeDelay / affectedCount : 0;
         document.getElementById("cascade-status").textContent =
-          `Hop ${hopNum} · ${step.total_airports} airports reached · ${step.total_delay.toFixed(0)} min total delay`;
+          `Hop ${hopNum} · ${affectedCount} airports reached · ${cumulativeDelay.toFixed(0)} min cumulative · ${avgDelay.toFixed(1)} min/airport`;
 
         cascadeStep++;
 
@@ -2053,6 +2697,27 @@
         .addEventListener("input", function () {
           document.getElementById("edge-filter-val").textContent = this.value;
           drawEdges();
+        });
+
+      // Route count slider — updates MAX_OUTBOUND_ROUTES and re-highlights
+      document
+        .getElementById("dp-route-slider")
+        .addEventListener("input", function () {
+          MAX_OUTBOUND_ROUTES = parseInt(this.value);
+          // Update track fill
+          const pct = ((this.value - 1) / (this.max - 1)) * 100;
+          this.style.setProperty("--pct", pct + "%");
+          // Re-run highlight for current selected node (highlight fn updates the label)
+          if (selectedNode) {
+            if (
+              currentMode === "cascade" &&
+              Object.keys(affectedState).length > 0
+            ) {
+              highlightOutboundSoft(selectedNode);
+            } else {
+              highlightOutbound(selectedNode);
+            }
+          }
         });
 
       // ═══════════════════════════════════════════

@@ -1370,6 +1370,7 @@
               weather_events: n.weather_events ?? 0,
               nas_events: n.nas_events ?? 0,
               carrier_events: n.carrier_events ?? 0,
+              prop_risk_norm: n.prop_risk_norm ?? 0,
             }))
             .filter((n) => n.lat != null && n.lon != null); // drop the airports with no coords
 
@@ -1787,13 +1788,13 @@
         </div>
         <div class="tt-metrics">
         <div class="tt-metric"><div class="ml">Risk Score</div><div class="mv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(1)}</div></div>
+        <div class="tt-metric"><div class="ml">Prob. Delay</div><div class="mv" style="color:${riskColor(d.prop_risk_score)}">${(d.prop_risk_norm * 100).toFixed(1)}%</div></div>
         <div class="tt-metric"><div class="ml">Out Events</div><div class="mv">${d.out_events.toLocaleString()}</div></div>
         <div class="tt-metric"><div class="ml">PageRank</div><div class="mv">${d.pagerank.toFixed(4)}</div></div>
         <div class="tt-metric"><div class="ml">Betweenness</div><div class="mv">${d.betweenness.toFixed(4)}</div></div>
         <div class="tt-metric"><div class="ml">Net Export</div><div class="mv">${d.net_export >= 0 ? "+" : ""}${d.net_export.toLocaleString()}</div></div>
         <div class="tt-metric"><div class="ml">In Events</div><div class="mv">${d.in_events.toLocaleString()}</div></div>
-        <div class="tt-metric"><div class="ml">Lat</div><div class="mv">${d.lat != null ? d.lat.toFixed(2) + "°" : "N/A"}</div></div>
-        <div class="tt-metric"><div class="ml">Lon</div><div class="mv">${d.lon != null ? d.lon.toFixed(2) + "°" : "N/A"}</div></div>
+        <div class="tt-metric"><div class="ml">Lat / Lon</div><div class="mv">${d.lat != null ? d.lat.toFixed(2) + "°, " + d.lon.toFixed(2) + "°" : "N/A"}</div></div>
         </div>
         <div style="margin-top:6px;font-size:9px;color:var(--text-dimmer)">Click to open full details</div>`;
         tooltip.classList.add("visible");
@@ -2094,7 +2095,7 @@
         document.getElementById("dp-grid").innerHTML = `
         <div class="dp-metric"><div class="dml">Risk Score<i class="minfo" data-tip="Avg minutes of delay this airport exports per propagation event">i</i></div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(1)}</div></div>
         <div class="dp-metric"><div class="dml">Risk Tier</div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${riskLabel(d.prop_risk_score)}</div></div>
-        <div class="dp-metric"><div class="dml">Exp. Delay<i class="minfo" data-tip="Expected delay a passenger may experience when a propagation event originates here">i</i></div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${d.prop_risk_score.toFixed(0)} min</div></div>
+        <div class="dp-metric"><div class="dml">Prob. Delay<i class="minfo" data-tip="Probability that a departure from this airport triggers a cascading delay of 15+ min to the next flight on that aircraft (out_events / total_out_flights)">i</i></div><div class="dmv" style="color:${riskColor(d.prop_risk_score)}">${(d.prop_risk_norm * 100).toFixed(1)}%</div></div>
         <div class="dp-metric"><div class="dml">Out Events<i class="minfo" data-tip="Times a delay left this airport and carried forward to the next flight on that aircraft">i</i></div><div class="dmv">${d.out_events.toLocaleString()}</div></div>
         <div class="dp-metric"><div class="dml">In Events<i class="minfo" data-tip="Propagation events that arrived at this airport from another airport">i</i></div><div class="dmv">${d.in_events.toLocaleString()}</div></div>
         <div class="dp-metric"><div class="dml">Net Export<i class="minfo" data-tip="Out Events minus In Events. Positive = this airport sends more delays than it receives">i</i></div><div class="dmv">${d.net_export >= 0 ? "+" : ""}${d.net_export.toLocaleString()}</div></div>

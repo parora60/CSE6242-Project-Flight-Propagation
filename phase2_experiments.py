@@ -15,6 +15,11 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+
 # Import directly from the main pipeline — no duplication
 from phase2_propagation import (
     load_flights,
@@ -198,6 +203,202 @@ def experiment_network_stability(data_dir: str):
 
 
 # ─────────────────────────────────────────────
+# CHART GENERATION
+# ─────────────────────────────────────────────
+
+CHART_STYLE = {
+    "figure.facecolor": "white",
+    "axes.facecolor": "#f8f9fa",
+    "axes.edgecolor": "#cccccc",
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.grid": True,
+    "grid.color": "#e0e0e0",
+    "grid.linestyle": "--",
+    "grid.linewidth": 0.6,
+    "font.family": "sans-serif",
+    "font.size": 11,
+    "axes.titlesize": 13,
+    "axes.titleweight": "bold",
+    "axes.labelsize": 11,
+}
+
+
+def plot_experiment_scalability(data_dir: str, out_dir: str):
+    """Chart for Experiment 1: runtime and edge count vs. months of data."""
+    path = Path(f"{data_dir}/experiment_scalability.csv")
+    if not path.exists():
+        print(f"  ⚠  {path} not found — skipping scalability chart")
+        return
+
+    df = pd.read_csv(path)
+    with plt.rc_context(CHART_STYLE):
+        fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+        fig.suptitle(
+            "Experiment 1 — Pipeline Scalability",
+            fontsize=14, fontweight="bold", y=1.01
+        )
+
+        # Left: runtime vs. events
+        ax = axes[0]
+        ax.plot(df["events"] / 1_000, df["time_s"], color="#E63946",
+                marker="o", linewidth=2, markersize=7)
+        for _, row in df.iterrows():
+            ax.annotate(f"{int(row['months'])}mo",
+                        (row["events"] / 1_000, row["time_s"]),
+                        textcoords="offset points", xytext=(6, 4),
+                        fontsize=9, color="#555555")
+        ax.set_xlabel("Propagation Events (thousands)")
+        ax.set_ylabel("Build Time (seconds)")
+        ax.set_title("Build Time vs. Dataset Size")
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(
+            lambda x, _: f"{x:.0f}K"))
+
+        # Right: edge count vs. months
+        ax2 = axes[1]
+        color_edges = "#457B9D"
+        color_nodes = "#2A9D8F"
+        ax2.bar(df["months"], df["edges"], color=color_edges,
+                alpha=0.8, label="Edges")
+        ax2_twin = ax2.twinx()
+        ax2_twin.plot(df["months"], df["nodes"], color=color_nodes,
+                      marker="s", linewidth=2, markersize=7, label="Nodes")
+        ax2.set_xlabel("Months Included")
+        ax2.set_ylabel("Network Edges", color=color_edges)
+        ax2_twin.set_ylabel("Network Nodes", color=color_nodes)
+        ax2.set_title("Network Growth vs. Months of Data")
+        ax2.tick_params(axis="y", labelcolor=color_edges)
+        ax2_twin.tick_params(axis="y", labelcolor=color_nodes)
+        ax2.set_xticks(df["months"].tolist())
+
+        lines1, labels1 = ax2.get_legend_handles_labels()
+        lines2, labels2 = ax2_twin.get_legend_handles_labels()
+        ax2.legend(lines1 + lines2, labels1 + labels2, loc="lower right",
+                   fontsize=9)
+
+        plt.tight_layout()
+        out_path = f"{out_dir}/experiment1_scalability.png"
+        plt.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close()
+    print(f"  ✓ Chart saved → {out_path}")
+
+
+def plot_experiment_threshold(data_dir: str, out_dir: str):
+    """Chart for Experiment 2: threshold sensitivity comparison."""
+    path = Path(f"{data_dir}/experiment_threshold_sensitivity.csv")
+    if not path.exists():
+        print(f"  ⚠  {path} not found — skipping threshold chart")
+        return
+
+    df = pd.read_csv(path)
+    labels = [f"{t} min" for t in df["threshold_min"]]
+    x = np.arange(len(labels))
+    width = 0.28
+
+    with plt.rc_context(CHART_STYLE):
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        fig.suptitle(
+            "Experiment 2 — Propagation Threshold Sensitivity",
+            fontsize=14, fontweight="bold", y=1.01
+        )
+
+        # Panel 1: event count + primary %
+        ax = axes[0]
+        bars = ax.bar(x, df["total_events"] / 1_000, color=["#E63946", "#2A9D8F", "#457B9D"],
+                      width=0.5, alpha=0.85)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+        ax.set_ylabel("Total Events (thousands)")
+        ax.set_title("Total Propagation Events")
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+            lambda val, _: f"{val:.0f}K"))
+        for bar, pct in zip(bars, df["primary_pct"]):
+            ax.text(bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 3,
+                    f"{pct:.0f}% primary",
+                    ha="center", va="bottom", fontsize=9, color="#333333")
+
+        # Panel 2: median vs mean delay
+        ax2 = axes[1]
+        ax2.bar(x - width / 2, df["median_delay"], width, label="Median delay",
+                color="#F4A261", alpha=0.9)
+        ax2.bar(x + width / 2, df["mean_delay"], width, label="Mean delay",
+                color="#E76F51", alpha=0.9)
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(labels)
+        ax2.set_ylabel("Propagated Delay (min)")
+        ax2.set_title("Delay Statistics by Threshold")
+        ax2.legend(fontsize=9)
+
+        # Panel 3: DFW risk score
+        ax3 = axes[2]
+        colors = ["#E63946" if t == 15 else "#aaaaaa" for t in df["threshold_min"]]
+        ax3.bar(x, df["dfw_risk_score"], color=colors, width=0.5, alpha=0.9)
+        ax3.set_xticks(x)
+        ax3.set_xticklabels(labels)
+        ax3.set_ylabel("DFW Risk Score (avg min/event)")
+        ax3.set_title("DFW Risk Score by Threshold")
+        ax3.text(1, df[df["threshold_min"] == 15]["dfw_risk_score"].values[0] + 1,
+                 "← selected", ha="center", fontsize=9, color="#E63946")
+
+        plt.tight_layout()
+        out_path = f"{out_dir}/experiment2_threshold_sensitivity.png"
+        plt.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close()
+    print(f"  ✓ Chart saved → {out_path}")
+
+
+def plot_experiment_stability(data_dir: str, out_dir: str):
+    """Chart for Experiment 3: network stability across months."""
+    path = Path(f"{data_dir}/experiment_network_stability.csv")
+    if not path.exists():
+        print(f"  ⚠  {path} not found — skipping stability chart")
+        return
+
+    # Take top 15 by count (descending), then reverse so highest appears at TOP of barh chart
+    df = pd.read_csv(path).sort_values("months_in_top10", ascending=False).head(15)
+    df = df.iloc[::-1].reset_index(drop=True)  # reverse: barh renders last row at top
+
+    color_map = {"High": "#2A9D8F", "Medium": "#F4A261", "Low": "#E63946"}
+    bar_colors = [color_map.get(s, "#aaaaaa") for s in df["stability"]]
+
+    with plt.rc_context(CHART_STYLE):
+        fig, ax = plt.subplots(figsize=(12, 6))
+        bars = ax.barh(df["airport"], df["months_in_top10"],
+                       color=bar_colors, alpha=0.88, height=0.65)
+        ax.set_xlabel("Months in Top 10 by Propagation Risk Score (out of 11)")
+        ax.set_title(
+            "Experiment 3 — Network Stability: Consistent High-Risk Airports Across Months"
+        )
+        ax.set_xlim(0, 12)
+        ax.axvline(x=9, color="#2A9D8F", linestyle="--", linewidth=1.2,
+                   label="High stability threshold (≥9/11 months)")
+        ax.axvline(x=6, color="#F4A261", linestyle=":", linewidth=1.2,
+                   label="Medium stability threshold (≥6/11 months)")
+
+        # Annotate each bar — bars and df rows are in the same order
+        for bar, (_, row) in zip(bars, df.iterrows()):
+            ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height() / 2,
+                    f"{int(row['months_in_top10'])}/11  [{row['stability']}]",
+                    va="center", fontsize=9, color="#444444")
+
+        # Legend: green=High (most consistent), orange=Medium, red=Low (least consistent)
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor="#2A9D8F", alpha=0.88, label="High (≥9 months) — most consistent"),
+            Patch(facecolor="#F4A261", alpha=0.88, label="Medium (6–8 months)"),
+            Patch(facecolor="#E63946", alpha=0.88, label="Low (<6 months) — least consistent"),
+        ]
+        ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
+
+        plt.tight_layout()
+        out_path = f"{out_dir}/experiment3_network_stability.png"
+        plt.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close()
+    print(f"  ✓ Chart saved → {out_path}")
+
+
+# ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────
 
@@ -218,9 +419,18 @@ def main(parquet_path: str, data_dir: str):
     experiment_threshold_sensitivity(pairs, meta)
     experiment_network_stability(data_dir)
 
+    # Generate experiment charts
+    out_dir = Path(f"{data_dir}/validation_charts")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print("\n[CHARTS] Generating experiment charts ...")
+    plot_experiment_scalability(data_dir, str(out_dir))
+    plot_experiment_threshold(data_dir, str(out_dir))
+    plot_experiment_stability(data_dir, str(out_dir))
+
     print("\n" + "=" * 60)
-    print("All experiments complete.")
+    print("All experiments and charts complete.")
     print(f"CSV results saved in: {data_dir}/")
+    print(f"Charts saved in:      {data_dir}/validation_charts/")
     print("=" * 60)
 
 

@@ -58,7 +58,7 @@
         align-items: center;
         gap: 28px;
         flex-shrink: 0;
-        z-index: 100;
+        z-index: 200;
       }
       #topbar .logo {
         display: flex;
@@ -548,7 +548,7 @@
       /* Detail panel (click) */
       #detail-panel {
         position: absolute;
-        top: 12px;
+        top: 64px;
         right: 12px;
         width: 300px;
         background: var(--surface);
@@ -559,7 +559,7 @@
         box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
         display: none;
         overflow: hidden;
-        max-height: calc(100vh - 80px);
+        max-height: calc(100vh - 144px);
         overflow-y: auto;
       }
       #detail-panel.visible {

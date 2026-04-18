@@ -1,5 +1,6 @@
 # Phase 2 – Propagation Network Requirements
 # Install with: pip install -r requirements_phase2.txt
+# (run_all.py installs these automatically)
 
 pandas>=2.0
 numpy>=1.24
@@ -8,4 +9,6 @@ pyarrow>=12.0        # for read_parquet
 tqdm>=4.65
 matplotlib>=3.7      # validation charts only
 fastparquet
-scipy>1.10           # for PageRank
+scipy>=1.10          # for PageRank
+nbconvert>=7.0       # for executing the Phase 1 notebook
+ipykernel>=6.0       # ensures nbconvert has a working kernel on any machine

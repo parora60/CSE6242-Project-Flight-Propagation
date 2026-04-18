@@ -26,16 +26,18 @@
 
 - Run everything:
   ```bash
-  bash run_all.sh
+  python run_all.py
   ```
-- Open: [**http://localhost:8080**](http://localhost:8080)
+- Open: [**http://localhost:8080**](http://localhost:8080) (opens automatically)
 - Pipeline: Data → Network → Visualization (3 phases)
+- Works on **Windows, macOS, and Linux** — no bash required
 
 <details>
 <summary><h3 style="display: inline;">More details:</h3></summary>
 
-`run_all.sh` is a single shell script that installs dependencies, runs the full
-pipeline (Phases 1 → 2 → validation), and launches the visualization server.
+`run_all.py` is a single cross-platform Python script that installs dependencies,
+runs the full pipeline (Phases 1 → 2 → validation), and launches the visualization
+server. Works on Windows, macOS, and Linux — no bash or shell required.
 
 ### Prerequisites
 
@@ -47,13 +49,13 @@ pipeline (Phases 1 → 2 → validation), and launches the visualization server.
 **First time — build everything from raw CSVs:**
 
 ```bash
-bash run_all.sh
+python run_all.py
 ```
 
 Installs dependencies, runs the Phase 1 notebook to produce `flights_clean.parquet`,
 runs the Phase 2 pipeline to build `network_graph.json` and `cascade_results.json`,
-runs validation, then starts the server. Phase 1 is skipped automatically on
-subsequent runs if the parquet already exists.
+runs validation, then starts the server and opens your browser automatically. Phase 1
+is skipped automatically on subsequent runs if the parquet already exists.
 
 Open **http://localhost:8080** in your browser.
 
@@ -62,7 +64,7 @@ Open **http://localhost:8080** in your browser.
 **Pipeline code changed, raw data unchanged** (most common during development):
 
 ```bash
-bash run_all.sh --force-phase2
+python run_all.py --force-phase2
 ```
 
 Skips the Phase 1 notebook (reuses the existing parquet), clears the previous
@@ -74,7 +76,7 @@ Use this whenever you update `phase2_propagation.py` and need fresh JSON outputs
 **Raw BTS CSV data changed** (new months added, source data updated):
 
 ```bash
-bash run_all.sh --force-all
+python run_all.py --force-all
 ```
 
 Deletes the existing parquet and re-runs Phase 1 from the raw CSVs, then runs
@@ -85,7 +87,7 @@ Phase 2. Use this when the underlying data — not just the pipeline code — ha
 **JSON outputs already built — just open the visualization:**
 
 ```bash
-bash run_all.sh --viz-only
+python run_all.py --viz-only
 ```
 
 Skips all pipeline steps and immediately starts the HTTP server. Requires
@@ -107,12 +109,13 @@ Skips all pipeline steps and immediately starts the HTTP server. Requires
 
 ### Run phases individually
 
-If you prefer to run each phase manually rather than through `run_all.sh`:
+If you prefer to run each phase manually rather than through `run_all.py`:
 
 ```bash
 # Phase 1 — run the notebook
-pip install nbconvert
-jupyter nbconvert --to notebook --execute project_pipeline.ipynb
+pip install nbconvert ipykernel
+jupyter nbconvert --to notebook --execute project_pipeline.ipynb \
+    --ExecutePreprocessor.kernel_name=python3
 
 # Phase 2 — build the network
 pip install -r requirements_phase2.txt

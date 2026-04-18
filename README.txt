@@ -64,7 +64,8 @@ Additional options:
     python run_all.py --viz-only       # skip pipeline, just launch the server
                                        # (use when JSON outputs already exist)
 
-    python run_all.py --force-phase2   # skip Phase 1, re-run Phase 2 + server
+    python run_all.py --force-phase2   # skip Phase 1 (data pipeline), re-run
+                                       # Phase 2 (algorithm) + launch server
 
     python run_all.py --force-all      # re-run everything including Phase 1
 

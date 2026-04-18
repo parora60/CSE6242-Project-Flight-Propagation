@@ -27,6 +27,7 @@
 - Run everything:
   ```bash
   python run_all.py
+  # or: python3 run_all.py
   ```
 - Open: [**http://localhost:8080**](http://localhost:8080) (opens automatically)
 - Pipeline: Data → Network → Visualization (3 phases)
@@ -41,7 +42,7 @@ server. Works on Windows, macOS, and Linux — no bash or shell required.
 
 ### Prerequisites
 
-- Python 3.9+ with `pip`
+- Python 3.9+ with `pip` (use `python3`/`pip3` if your system requires it)
 - BTS CSV files placed in `data/csv/` (see §3.2 for download instructions)
 
 ### Common scenarios
@@ -50,6 +51,7 @@ server. Works on Windows, macOS, and Linux — no bash or shell required.
 
 ```bash
 python run_all.py
+# or: python3 run_all.py
 ```
 
 Installs dependencies, runs the Phase 1 notebook to produce `flights_clean.parquet`,
@@ -65,6 +67,7 @@ Open **http://localhost:8080** in your browser.
 
 ```bash
 python run_all.py --force-phase2
+# or: python3 run_all.py --force-phase2
 ```
 
 Skips the Phase 1 notebook (reuses the existing parquet), clears the previous
@@ -77,6 +80,7 @@ Use this whenever you update `phase2_propagation.py` and need fresh JSON outputs
 
 ```bash
 python run_all.py --force-all
+# or: python3 run_all.py --force-all
 ```
 
 Deletes the existing parquet and re-runs Phase 1 from the raw CSVs, then runs
@@ -88,6 +92,7 @@ Phase 2. Use this when the underlying data — not just the pipeline code — ha
 
 ```bash
 python run_all.py --viz-only
+# or: python3 run_all.py --viz-only
 ```
 
 Skips all pipeline steps and immediately starts the HTTP server. Requires
@@ -113,22 +118,24 @@ If you prefer to run each phase manually rather than through `run_all.py`:
 
 ```bash
 # Phase 1 — run the notebook
-pip install nbconvert ipykernel
+pip install nbconvert ipykernel        # or: pip3 install ...
 jupyter nbconvert --to notebook --execute project_pipeline.ipynb \
     --ExecutePreprocessor.kernel_name=python3
 
 # Phase 2 — build the network
-pip install -r requirements_phase2.txt
+pip install -r requirements_phase2.txt  # or: pip3 install ...
 python phase2_propagation.py --parquet ./data/parquet/flights_clean.parquet
+# or: python3 phase2_propagation.py ...
 
 # Phase 2 — validate outputs and generate charts
-python phase2_validate.py
+python phase2_validate.py              # or: python3 phase2_validate.py
 
 # Phase 2 — scalability & sensitivity experiments (optional)
 python phase2_experiments.py --parquet ./data/parquet/flights_clean.parquet
+# or: python3 phase2_experiments.py ...
 
 # Phase 3 — start the visualization server
-python -m http.server 8080
+python -m http.server 8080             # or: python3 -m http.server 8080
 # Open http://localhost:8080
 ```
 
@@ -478,6 +485,7 @@ consistent across months.
 ```bash
 # From the project root (index.html and data/ must be in the same directory)
 python -m http.server 8080
+# or: python3 -m http.server 8080
 ```
 
 Open **http://localhost:8080** in your browser. The `data/` folder must contain
@@ -607,7 +615,7 @@ active, the base layer stays visible to preserve the cascade color context.
   reflects the cause mix on routes _departing_ the selected airport, not delays _arriving_
   at it.
 - **Visualization requires a local server** — opening `index.html` as a `file://` URL
-  fails due to browser CORS restrictions on `fetch()`. Always serve via `python -m http.server`.
+  fails due to browser CORS restrictions on `fetch()`. Always serve via `python -m http.server` (or `python3 -m http.server`).
 - **Chain break rate** — BTS tail-number sequences contain gaps (aircraft swaps, data
   reporting gaps). These are flagged `CHAIN_BREAK=1` and excluded from propagation
   detection in Phase 2.

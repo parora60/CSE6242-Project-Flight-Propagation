@@ -34,16 +34,20 @@ INSTALLATION
 ------------
 Requirements: Python 3.9 or higher (no other installs needed).
 
-All Python dependencies are installed automatically when you run the execution command below.
-To install them manually:
+All Python dependencies are installed automatically when you run the execution
+command below. To install them manually:
 
     pip install -r requirements_phase2.txt
+    # or, on systems that require it:
+    pip3 install -r requirements_phase2.txt
 
 EXECUTION
 ---------
 The simplest way to launch the full pipeline and visualization:
 
     python run_all.py
+    # or, on systems that require it:
+    python3 run_all.py
 
 This single command will:
   1. Install all Python dependencies (requirements_phase2.txt)

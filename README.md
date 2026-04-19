@@ -5,6 +5,8 @@
 > Converts ~6.6 million US airline records into an interactive network map that reveals
 > which airports and routes drive cascading delays across the country. Built entirely
 > from public BTS on-time performance data (January–November 2025).
+>
+> Video Demo: https://youtu.be/QB2HpBAaoSM
 
 ---
 
@@ -524,17 +526,17 @@ with affected airports and estimated delay.
 
 ### 5.4 Interactions
 
-| Action                               | Result                                                                                    |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| **Hover** airport node               | Tooltip: risk score, event counts, PageRank, betweenness, coordinates                    |
-| **Click** airport node               | Opens detail panel with full metrics + delay cause breakdown + outbound route highlight   |
-| **Click** left panel row             | Flies map to that airport and opens its detail panel                                      |
-| **Scroll** on map                    | Zoom in / out                                                                             |
-| **Click and drag**                   | Pan                                                                                       |
-| **+** / **−** / **⊡** (bottom-right) | Zoom in, zoom out, reset view                                                             |
-| **? How to use** (bottom-left)       | Opens help overlay                                                                        |
-| **Click map background**             | Dismisses detail panel, clears selection highlight                                        |
-| **Click airport during cascade**     | Inspects that airport's metrics without clearing cascade results or changing the seed     |
+| Action                               | Result                                                                                  |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| **Hover** airport node               | Tooltip: risk score, event counts, PageRank, betweenness, coordinates                   |
+| **Click** airport node               | Opens detail panel with full metrics + delay cause breakdown + outbound route highlight |
+| **Click** left panel row             | Flies map to that airport and opens its detail panel                                    |
+| **Scroll** on map                    | Zoom in / out                                                                           |
+| **Click and drag**                   | Pan                                                                                     |
+| **+** / **−** / **⊡** (bottom-right) | Zoom in, zoom out, reset view                                                           |
+| **? How to use** (bottom-left)       | Opens help overlay                                                                      |
+| **Click map background**             | Dismisses detail panel, clears selection highlight                                      |
+| **Click airport during cascade**     | Inspects that airport's metrics without clearing cascade results or changing the seed   |
 
 ### 5.5 Outbound Route Highlight
 
@@ -580,11 +582,11 @@ hubs simultaneously at later hops.
 
 Controls:
 
-| Control        | Effect                                                   |
-| -------------- | -------------------------------------------------------- |
-| **Play Cascade** | Starts or stops the simulation                         |
-| **Stop**       | Halts and resets node colors                             |
-| **Replay**     | Resets and restarts from the same seed                   |
+| Control                | Effect                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| **Play Cascade**       | Starts or stops the simulation                                                                |
+| **Stop**               | Halts and resets node colors                                                                  |
+| **Replay**             | Resets and restarts from the same seed                                                        |
 | **Edge Filter** slider | Sets minimum route event count for cascade eligibility — higher = fewer, stronger routes only |
 
 The hop progress dots below the Play button show total hops; filled dots = completed,

@@ -76,6 +76,6 @@ as a file:// URL will fail due to browser CORS restrictions.
 
 DEMO VIDEO
 ----------
-[Optional — include YouTube URL here if recorded]
+https://youtu.be/QB2HpBAaoSM
 
 ================================================================================

@@ -34,6 +34,12 @@ INSTALLATION
 ------------
 Requirements: Python 3.9 or higher (no other installs needed).
 
+To avoid conflicts with other Python projects on your machine, you can
+optionally run inside a virtual environment first:
+
+    python -m venv venv             # For other systems: python3 -m venv venv
+    source venv\Scripts\activate.   # venv/bin/activate
+
 All Python dependencies are installed automatically when you run the execution
 command below. To install them manually:
 

@@ -26,6 +26,14 @@
 
 ### TL;DR:
 
+- **Optional — avoid package conflicts:** If you have other Python projects on your machine,
+  consider running inside a virtual environment:
+
+  ```bash
+  python -m venv venv
+  source venv/bin/activate   # Windows: venv\Scripts\activate
+  ```
+
 - Run everything:
   ```bash
   python run_all.py

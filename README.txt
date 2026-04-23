@@ -34,14 +34,20 @@ INSTALLATION
 ------------
 Requirements: Python 3.9 or higher (no other installs needed).
 
-To avoid conflicts with other Python projects on your machine, you can
-optionally run inside a virtual environment first:
+Step 1 — Download all files from the CODE folder of the submission zip and
+place them in a single directory on your machine. The CODE folder already
+includes the monthly BTS CSV data files (in data/csv/) needed to run the
+pipeline — no separate data download is required.
 
-    python -m venv venv             # For other systems: python3 -m venv venv
-    source venv\Scripts\activate.   # venv/bin/activate
+Step 2 (optional) — To avoid conflicts with other Python projects on your
+machine, run inside a virtual environment:
 
-All Python dependencies are installed automatically when you run the execution
-command below. To install them manually:
+    python -m venv venv
+    source venv/bin/activate        # Windows: venv\Scripts\activate
+    # or, on systems that require it: python3 -m venv venv
+
+Step 3 — All Python dependencies are installed automatically when you run the
+execution command python run_all.py. To install them manually:
 
     pip install -r requirements_phase2.txt
     # or, on systems that require it:
